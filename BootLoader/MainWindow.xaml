@@ -23,11 +23,11 @@
             </Border.Background>
             <Grid>
                 <Grid.RowDefinitions>
-                    <RowDefinition x:Name="footer" Height="auto"/>
+                    <RowDefinition x:Name="Footer" Height="auto"/>
                     <RowDefinition />
                     <RowDefinition Height="auto" />
                 </Grid.RowDefinitions>
-                <TextBlock Text="Прошивальщик от Курлеса 0.0.1" Padding="5" MouseLeftButtonDown="TextBlock_MouseLeftButtonDown_1" MouseLeftButtonUp="TextBlock_MouseLeftButtonUp_1" />
+                <TextBlock Padding="5" MouseLeftButtonDown="TextBlock_MouseLeftButtonDown_1" MouseLeftButtonUp="TextBlock_MouseLeftButtonUp_1" ><Run Text="Прошивальщик от Курлеса 0."/><Run Language="ru-ru" Text="1"/><Run Text=".1"/></TextBlock>
                 <Grid Grid.Row="1" Background="#B5CBEF">
                     <Grid>
                         <Grid.RowDefinitions>
@@ -41,18 +41,25 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <GroupBox Grid.Row="0" Grid.Column="0" Header="Файл для прошивки">
-                            <TextBlock TextTrimming="CharacterEllipsis" x:Name="labelForFileName" Text="Файл не выбран" ToolTip="{Binding RelativeSource={RelativeSource Self}, Path=Text}"/>
+                        <GroupBox Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Header="Файл для прошивки">
+                            <TextBlock TextTrimming="CharacterEllipsis" x:Name="LabelForFileName" Text="Файл не выбран" ToolTip="{Binding RelativeSource={RelativeSource Self}, Path=Text}"/>
                         </GroupBox>
 
-                        <GroupBox Grid.Row="0" Grid.Column="1" Grid.ColumnSpan="2" Header="Последовательный порт">
-                            <ComboBox x:Name="comboboxForPortsNames" SelectionChanged="comboboxForPortsNames_SelectionChanged"/>
+                        <GroupBox Grid.Row="0" Grid.Column="2" Header="Последовательный порт">
+                            <ComboBox x:Name="ComboboxForPortsNames" SelectionChanged="comboboxForPortsNames_SelectionChanged"/>
                         </GroupBox>
-                        <GroupBox Grid.Row="1" Grid.Column="0" Header="Файл для прошивки">
-                            <TextBlock TextTrimming="CharacterEllipsis" x:Name="labelForFileName" Text="Файл не выбран" ToolTip="{Binding RelativeSource={RelativeSource Self}, Path=Text}"/>
+                        <GroupBox Grid.Row="1" Grid.Column="1" Header="Код устройства" Height="44.8" VerticalAlignment="Bottom">
+                            <ComboBox x:Name="ComboBoxForDeviceCode" IsEditable="True" KeyUp="ComboBoxForDeviceCode_KeyUp"/>
                         </GroupBox>
+                        <GroupBox Grid.Row="1" Grid.Column="2"  Header="Скорость порта">
+                            <ComboBox x:Name="ComboBoxForSerialPortBaudrate"/>
+                        </GroupBox>
+                        <GroupBox Grid.Row="1" Grid.Column="0"  Header="Шифрование">
+                            <Button x:Name="IsCryptEnabledButton" Content="Включено" Click="Button_Click"/>
+                        </GroupBox>
+
                         <GroupBox Grid.Row="2" Grid.Column="0" Grid.ColumnSpan="3" Header="Прогресс прошивания">
-                            <local:ProgressBarWithText x:Name="progressBar"/>
+                            <local:ProgressBarWithText x:Name="ProgressBar"/>
                         </GroupBox>
                     </Grid>
                 </Grid>

@@ -3,6 +3,7 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.IO;
 using System.Text;
+using System.Text.RegularExpressions;
 using System.Windows;
 using System.Windows.Controls;
 using System.Windows.Input;
@@ -23,6 +24,7 @@ namespace BootLoader
     [GuidAttribute("ABA15C8E-EC5D-435F-8455-17B03DC5B064")]
     public partial class MainWindow
     {
+        private bool _isCryptingEnabled = true;
         private string _hexFilename = "";
         private string _serialPort = "";
         private readonly byte[] _buffer = new byte[0x10000];
@@ -41,6 +43,40 @@ namespace BootLoader
             LastPacket,
             
         }
+
+        private string[] FixComPortsNames(string[] comportStrings)
+        {
+            var ret = new string[comportStrings.Length];
+            int index = 0;
+            foreach (string comportString in comportStrings)
+            {
+                Regex regex = new Regex("\\b(\\w+\\d+)");
+                Match match = regex.Match(comportString);
+                if (match.Success)
+                {
+                    ret[index] = match.Groups[0].ToString();    
+                }
+                else
+                {
+                    ret[index] = comportString;
+                }
+                ++index;
+            }
+            return ret;
+
+        }
+
+        protected override void OnClosing(CancelEventArgs e)
+        {
+            UpdateSettings();
+            base.OnClosing(e);
+        }
+
+        private void UpdateIsCryptingEnabledButtonText()
+        {
+            string text = _isCryptingEnabled ? "Включено" : "Отключено";
+            IsCryptEnabledButton.Content = text;
+        }
         public MainWindow()
         {
             var array = new List<byte> { 12, 12, 43, 54, 34, 23, 23, 33 };
@@ -50,18 +86,24 @@ namespace BootLoader
             array.Add((byte)crc);
 
             Debug.WriteLine(String.Format("crc: {0}, {1:x2}", _CRC(array.ToArray()), crc));
-
+            
             InitializeComponent();
             _bgWorker.WorkerReportsProgress = true;
             _bgWorker.WorkerSupportsCancellation = true;
             string[] ports = SerialPort.GetPortNames();
+            ports = FixComPortsNames(ports);
+
+            int[] baudRate = { 4800, 9600, 19200, 38400, 57600, 115200, 230400 };
+            ComboBoxForSerialPortBaudrate.ItemsSource = baudRate;
+            ComboBoxForSerialPortBaudrate.SelectedItem = baudRate[0];
+            
             _bgWorker.DoWork += bgWorker_DoWork;
             _bgWorker.RunWorkerCompleted += bgWorker_RunWorkerCompleted;
             _bgWorker.ProgressChanged += bgWorker_ProgressChanged;
-            comboboxForPortsNames.ItemsSource = ports;
+            ComboboxForPortsNames.ItemsSource = ports;
             if (ports.Length > 0)
             {
-                comboboxForPortsNames.SelectedItem = ports[0];
+                ComboboxForPortsNames.SelectedItem = ports[0];
                 _serialPort = ports[0];
             }
             _settingFile = AppDomain.CurrentDomain.BaseDirectory;
@@ -69,23 +111,57 @@ namespace BootLoader
                 if (_settingFile.Substring(_settingFile.Length - 1, 1) != "\\")
                     _settingFile += "\\";
             _settingFile += "settings.xml";
-            progressBar.Text = "Выберите файл";
+            ProgressBar.Text = "Выберите файл";
             var settingFileIsPresents = true;
             try
             {
                 var xd = new XmlDocument();
                 xd.Load(_settingFile);
+                string currentDeviceCode = "";
                 if (xd.DocumentElement != null)
                     foreach (XmlNode node in xd.DocumentElement.ChildNodes)
                     {
                         if (node.Name == "FileName")
                             _hexFilename = node.InnerText;
                         if (node.Name == "SerialPort")
-                            _serialPort = node.InnerText;
+                        {
+                            string serialPortName = node.InnerText;
+                            if (ComboboxForPortsNames.Items.Contains(serialPortName))
+                                _serialPort = node.InnerText;
+                        }
+                            
+                        if (node.Name == "CryptIsEnabled")
+                            _isCryptingEnabled = node.InnerText == "true";
+                        if (node.Name == "BaudRate")
+                        {   
+                            ComboBoxForSerialPortBaudrate.SelectedItem = Convert.ToInt32(node.InnerText);   
+                        }
+                        if (node.Name == "CurrentDeviceCode")
+                            currentDeviceCode = node.InnerText;
+                        if (node.Name == "ListOfDeveiceCodes")
+                        {
+                            XmlNodeList xmlNodeList = node.ChildNodes;
+                            foreach (XmlNode xmlNode in xmlNodeList)
+                            {
+                                if (xmlNode.Name == "DeviceCode")
+                                {
+                                    ComboBoxForDeviceCode.Items.Add(xmlNode.InnerText);
+                                }
+                            }
+                        }
                     }
+                if (ComboBoxForDeviceCode.Items.Contains(currentDeviceCode))
+                {
+                    ComboBoxForDeviceCode.SelectedItem = currentDeviceCode;
+                }
+                else
+                {
+                    ComboBoxForDeviceCode.Text = currentDeviceCode;
+                }
+                UpdateIsCryptingEnabledButtonText();
                 ParseHexFile();
                 ButtonStartFlashing.IsEnabled = true;
-                comboboxForPortsNames.SelectedItem = _serialPort;
+                ComboboxForPortsNames.SelectedItem = _serialPort;
             }
             catch (Exception)
             {
@@ -130,27 +206,27 @@ namespace BootLoader
 
         void bgWorker_ProgressChanged(object sender, ProgressChangedEventArgs e)
         {
-            progressBar.Value = e.ProgressPercentage;
+            ProgressBar.Value = e.ProgressPercentage;
         }
 
         void bgWorker_RunWorkerCompleted(object sender, RunWorkerCompletedEventArgs e)
         {
             if (e.Cancelled)
             {
-                progressBar.Text = "Операция отменена";
+                ProgressBar.Text = "Операция отменена";
             }
             else if (e.Error != null)
             {
-                progressBar.Text = String.Format("Ошибка: {0}", e.Error.Message);
+                ProgressBar.Text = String.Format("Ошибка: {0}", e.Error.Message);
             }
             else
             {
-                progressBar.Text = e.Result.ToString();
+                ProgressBar.Text = e.Result.ToString();
             }
 
             ButtonSelectFile.IsEnabled = true;
             ButtonStartFlashing.IsEnabled = true;
-            comboboxForPortsNames.IsEnabled = true;
+            ComboboxForPortsNames.IsEnabled = true;
             ButtonSelectAndFlashing.IsEnabled = true;
         }
 
@@ -191,7 +267,7 @@ namespace BootLoader
             using (var sp = new SerialPort(portName))
             {
                 try
-                {
+                {   
                     sp.DataReceived += OnSerialDataReceived;
                     sp.Parity = Parity.None;
                     sp.DataBits = 8;
@@ -457,6 +533,7 @@ namespace BootLoader
 
         private void UpdateSettings()
         {
+            AddCurrentDeviceCodeToComboboxList();
             try
             {
                 var settings = new XmlWriterSettings
@@ -464,7 +541,7 @@ namespace BootLoader
                     // включаем отступ для элементов XML документа
                     // (позволяет наглядно изобразить иерархию XML документа)
                     Indent = true,
-                    IndentChars = "    ",
+                    IndentChars = "  ",
                     // задаем переход на новую строку
                     NewLineChars = "\n",
                     // Нужно ли опустить строку декларации формата XML документа
@@ -477,6 +554,19 @@ namespace BootLoader
 
                     xw.WriteElementString("FileName", _hexFilename);
                     xw.WriteElementString("SerialPort", _serialPort);
+                    xw.WriteElementString("CryptIsEnabled", _isCryptingEnabled ? "true" : "false");
+                    xw.WriteElementString("BaudRate", ComboBoxForSerialPortBaudrate.Text);
+                    ItemCollection itemCollection = ComboBoxForDeviceCode.Items;
+                    if (!itemCollection.IsEmpty)
+                    {
+                        xw.WriteStartElement("ListOfDeveiceCodes");
+                        foreach (var item in itemCollection)
+                        {
+                            xw.WriteElementString("DeviceCode", item.ToString());
+                        }
+                        xw.WriteEndElement();
+                        xw.WriteElementString("CurrentDeviceCode", ComboBoxForDeviceCode.Text);
+                    }
                     xw.WriteEndElement();
                     xw.Flush();
                     xw.Close();
@@ -484,22 +574,22 @@ namespace BootLoader
             }
             catch (Exception)
             {
-                progressBar.Text = "Ошибка при обновлени настроек";
+                ProgressBar.Text = "Ошибка при обновлени настроек";
             }
         }
         private void SetMaxValueForProgressBar(int value)
         {
-            progressBar.Dispatcher.BeginInvoke(new Action<int>(x => { progressBar.Maximum = x; }), value);
+            ProgressBar.Dispatcher.BeginInvoke(new Action<int>(x => { ProgressBar.Maximum = x; }), value);
         }
 
         private void SetValueForProgressBar(int value)
         {
-            progressBar.Dispatcher.BeginInvoke(new Action<int>(x => { progressBar.Value = x; }), value);
+            ProgressBar.Dispatcher.BeginInvoke(new Action<int>(x => { ProgressBar.Value = x; }), value);
         }
 
         private void SetTextForProgressBar(string text)
         {
-            progressBar.Dispatcher.BeginInvoke(new Action<string>(x => { progressBar.Text = x; }), text);
+            ProgressBar.Dispatcher.BeginInvoke(new Action<string>(x => { ProgressBar.Text = x; }), text);
         }
 
         protected static ushort GetChecksum(byte[] bytes, int startAddress = 0)
@@ -522,11 +612,11 @@ namespace BootLoader
         delegate void ChangeProgressBarValue(int value);
         public void ChangeProgerssBarValue(int value)
         {
-            if (progressBar.Dispatcher.CheckAccess())
-                progressBar.Value = value;
+            if (ProgressBar.Dispatcher.CheckAccess())
+                ProgressBar.Value = value;
             else
             {
-                progressBar.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal,
+                ProgressBar.Dispatcher.BeginInvoke(System.Windows.Threading.DispatcherPriority.Normal,
                     new ChangeProgressBarValue(ChangeProgerssBarValue),
                     value);
             }
@@ -536,7 +626,7 @@ namespace BootLoader
         private int _maxAddress;
         private void ParseHexFile()
         {
-            labelForFileName.Text = _hexFilename;
+            LabelForFileName.Text = _hexFilename;
             for (var i = 0; i < 0x10000; ++i)
                 _buffer[i] = 0x00;
 
@@ -610,7 +700,7 @@ namespace BootLoader
                 }
                 if (!converted)
                 {
-                    progressBar.Text = "Не верный формат hex файла";
+                    ProgressBar.Text = "Не верный формат hex файла";
                     ButtonStartFlashing.IsEnabled = false;
                 }
                 else
@@ -628,14 +718,14 @@ namespace BootLoader
                     }
 
                     Debug.WriteLine(String.Format("minAddres = {0}, maxAddress = {1}", _minAddress, _maxAddress));
-                    progressBar.Text = "Всё готово к прошивке";
+                    ProgressBar.Text = "Всё готово к прошивке";
                 }
             }
         }
 
         private void comboboxForPortsNames_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            _serialPort = comboboxForPortsNames.SelectedItem.ToString();
+            _serialPort = ComboboxForPortsNames.SelectedItem.ToString();
             UpdateSettings();
         }
 
@@ -709,9 +799,9 @@ namespace BootLoader
             }
             ButtonSelectFile.IsEnabled = false;
             ButtonStartFlashing.IsEnabled = false;
-            comboboxForPortsNames.IsEnabled = false;
+            ComboboxForPortsNames.IsEnabled = false;
             ButtonSelectAndFlashing.IsEnabled = false;
-            progressBar.Text = "Идет прошивка, подождите...";
+            ProgressBar.Text = "Идет прошивка, подождите...";
             _bgWorker.RunWorkerAsync(_serialPort);
         }
 
@@ -731,7 +821,36 @@ namespace BootLoader
             if (ButtonStartFlashing.IsEnabled)
                 ButtonStartFlashing_Click(this, new RoutedEventArgs());
             else
-                progressBar.Text = "Херню вы какую то выбрали, батенька";
+                ProgressBar.Text = "Херню вы какую то выбрали, батенька";
+        }
+
+        private void Button_Click(object sender, RoutedEventArgs e)
+        {
+            _isCryptingEnabled ^= true;
+            UpdateIsCryptingEnabledButtonText();
+        }
+
+        private void ComboBoxForDeviceCode_KeyUp(object sender, KeyEventArgs e)
+        {
+            if (e.Key == Key.Return)
+            {
+                AddCurrentDeviceCodeToComboboxList();
+            }
+        }
+
+        private void AddCurrentDeviceCodeToComboboxList()
+        {
+            ItemCollection itemCollection = ComboBoxForDeviceCode.Items;
+            string addedItem = ComboBoxForDeviceCode.Text;
+            addedItem = addedItem.Trim(' ');
+            if (addedItem.Length > 0)
+            {
+                if (!itemCollection.Contains(addedItem))
+                {
+                    itemCollection.Add(ComboBoxForDeviceCode.Text);
+                }
+
+            }
         }
     }
 }
