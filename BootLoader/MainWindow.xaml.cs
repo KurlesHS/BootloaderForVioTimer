@@ -20,8 +20,7 @@ namespace BootLoader
     /// <summary>
     /// Interaction logic for MainWindow.xaml
     /// </summary>
-
-    [GuidAttribute("ABA15C8E-EC5D-435F-8455-17B03DC5B064")]
+    [GuidAttribute("E868067A-33DC-4563-AC27-566839970EF8")]
     public partial class MainWindow
     {
         private bool _isCryptingEnabled = true;
@@ -44,14 +43,14 @@ namespace BootLoader
             
         }
 
-        private string[] FixComPortsNames(string[] comportStrings)
+        private static string[] FixComPortsNames(ICollection<string> comportStrings)
         {
-            var ret = new string[comportStrings.Length];
-            int index = 0;
-            foreach (string comportString in comportStrings)
+            var ret = new string[comportStrings.Count];
+            var index = 0;
+            foreach (var comportString in comportStrings)
             {
-                Regex regex = new Regex("\\b(\\w+\\d+)");
-                Match match = regex.Match(comportString);
+                var regex = new Regex("\\b(\\w+\\d+)");
+                var match = regex.Match(comportString);
                 if (match.Success)
                 {
                     ret[index] = match.Groups[0].ToString();    
@@ -74,13 +73,13 @@ namespace BootLoader
 
         private void UpdateIsCryptingEnabledButtonText()
         {
-            string text = _isCryptingEnabled ? "Включено" : "Отключено";
+            var text = _isCryptingEnabled ? "Включено" : "Отключено";
             IsCryptEnabledButton.Content = text;
         }
         public MainWindow()
         {
             var array = new List<byte> { 12, 12, 43, 54, 34, 23, 23, 33 };
-            var crc = chksm(array.ToArray());
+            var crc = Chksm(array.ToArray());
 
             array.Add((byte)(crc >> 8));
             array.Add((byte)crc);
@@ -90,7 +89,7 @@ namespace BootLoader
             InitializeComponent();
             _bgWorker.WorkerReportsProgress = true;
             _bgWorker.WorkerSupportsCancellation = true;
-            string[] ports = SerialPort.GetPortNames();
+            var ports = SerialPort.GetPortNames();
             ports = FixComPortsNames(ports);
 
             int[] baudRate = { 4800, 9600, 19200, 38400, 57600, 115200, 230400 };
@@ -117,7 +116,7 @@ namespace BootLoader
             {
                 var xd = new XmlDocument();
                 xd.Load(_settingFile);
-                string currentDeviceCode = "";
+                var currentDeviceCode = "";
                 if (xd.DocumentElement != null)
                     foreach (XmlNode node in xd.DocumentElement.ChildNodes)
                     {
@@ -125,7 +124,7 @@ namespace BootLoader
                             _hexFilename = node.InnerText;
                         if (node.Name == "SerialPort")
                         {
-                            string serialPortName = node.InnerText;
+                            var serialPortName = node.InnerText;
                             if (ComboboxForPortsNames.Items.Contains(serialPortName))
                                 _serialPort = node.InnerText;
                         }
@@ -140,7 +139,7 @@ namespace BootLoader
                             currentDeviceCode = node.InnerText;
                         if (node.Name == "ListOfDeveiceCodes")
                         {
-                            XmlNodeList xmlNodeList = node.ChildNodes;
+                            var xmlNodeList = node.ChildNodes;
                             foreach (XmlNode xmlNode in xmlNodeList)
                             {
                                 if (xmlNode.Name == "DeviceCode")
@@ -171,26 +170,22 @@ namespace BootLoader
             {
                 UpdateSettings();
             }
-            Debug.WriteLine(String.Format("main thread id: {0}", System.Threading.Thread.CurrentThread.ManagedThreadId));
-
         }
         // проверка крк пакета возращает 1 если верно
-        byte _CRC(byte[] array)
+        static byte _CRC(IList<byte> array)
         {
 
             UInt64 sum = 0;
             byte i = 0;
 
-            while (i < array.Length)
+            while (i < array.Count)
                 sum += ((UInt64)array[i++] << 8) + array[i++];
             sum = (sum >> 16) + (sum & 0xFFFF);
             sum += (sum >> 16);
-            if (sum == 0xffff)
-                return 1;
-            return 0;
+            return sum == 0xffff ? (byte)1 : (byte)0;
         }
 
-        UInt16 chksm(byte[] array)
+        static UInt16 Chksm(byte[] array)
         {
             UInt64 sum = 0;
             var i = 0;
@@ -324,7 +319,7 @@ namespace BootLoader
                                             packet.Add(4);
                                             packet.Add(0);
                                             packet.Add(0);
-                                            crc = chksm(packet.ToArray());
+                                            crc = Chksm(packet.ToArray());
                                             packet.Add((byte)(crc >> 8));
                                             packet.Add((byte)crc);
                                             codeList(ref packet);
@@ -342,7 +337,7 @@ namespace BootLoader
                                         var crcOfMemory = CalculateCrc();
                                         for (var i = 0; i < 4; ++i )
                                             packet.Add(crcOfMemory[i]);
-                                        crc = chksm(packet.ToArray());
+                                        crc = Chksm(packet.ToArray());
                                         packet.Add((byte)(crc >> 8));
                                         packet.Add((byte)crc);
                                         codeList(ref packet);
@@ -360,7 +355,7 @@ namespace BootLoader
                                         packet.Add(2);
                                         packet.Add((byte)_maxAddress);
                                         packet.Add((byte)(_maxAddress >> 8));
-                                        crc = chksm(packet.ToArray());
+                                        crc = Chksm(packet.ToArray());
                                         packet.Add((byte)(crc >> 8));
                                         packet.Add((byte)crc);
                                         codeList(ref packet);
@@ -383,7 +378,7 @@ namespace BootLoader
                                     {
                                         packet.Add(_buffer[startAddress + i]);
                                     }
-                                    crc = chksm(packet.ToArray());
+                                    crc = Chksm(packet.ToArray());
                                     packet.Add((byte)(crc >> 8));
                                     packet.Add((byte)crc);
                                     codeList(ref packet);
@@ -466,61 +461,76 @@ namespace BootLoader
                 switch (_currentFlashStatus)
                 {
                     case FlasherStatus.WaitReady:
+                    {
+                        var response = Encoding.ASCII.GetString(ReadBuf, 0, _readBufOffset);
+                        switch (response)
                         {
-                            var response = Encoding.ASCII.GetString(ReadBuf, 0, _readBufOffset);
-                            if (response == "bad")
+                            case "bad":
                                 _currentFlashStatus = FlasherStatus.Bad;
-                            else if (response == "ready")
-                            {
+                                break;
+                            case "ready":
                                 _currentFlashStatus = FlasherStatus.ReadyToSendNextPacket;
                                 _readBufOffset = 0;
-                            }
-                            else if (_readBufOffset >= 5)
-                                _currentFlashStatus = FlasherStatus.WrongPacket;
-                            else
-                            {
-                                _timer.Interval = 1000;
-                                _timer.Start();
-                            }
+                                break;
+                            default:
+                                if (_readBufOffset >= 5)
+                                    _currentFlashStatus = FlasherStatus.WrongPacket;
+                                else
+                                {
+                                    _timer.Interval = 1000;
+                                    _timer.Start();
+                                }
+                                break;
                         }
+                    }
                         break;
                     case FlasherStatus.WaitResponse:
+                    {
+                        var response = Encoding.ASCII.GetString(ReadBuf, 0, _readBufOffset);
+                        switch (response)
                         {
-                            var response = Encoding.ASCII.GetString(ReadBuf, 0, _readBufOffset);
-                            if (response == "bad")
+                            case "bad":
                                 _currentFlashStatus = FlasherStatus.Bad;
-                            else if (response == "good")
-                            {
+                                break;
+                            case "good":
                                 _currentFlashStatus = FlasherStatus.ReadyToSendNextPacket;
                                 _readBufOffset = 0;
-                            }
-                            else if (_readBufOffset >= 4)
-                                _currentFlashStatus = FlasherStatus.WrongPacket;
-                            else
-                            {
-                                _timer.Interval = 1000;
-                                _timer.Start();
-                            }
+                                break;
+                            default:
+                                if (_readBufOffset >= 4)
+                                    _currentFlashStatus = FlasherStatus.WrongPacket;
+                                else
+                                {
+                                    _timer.Interval = 1000;
+                                    _timer.Start();
+                                }
+                                break;
                         }
+                    }
                         break;
                     case FlasherStatus.WaitLastResponse:
+                    {
+                        var response = Encoding.ASCII.GetString(ReadBuf, 0, _readBufOffset);
+                        switch (response)
                         {
-                            var response = Encoding.ASCII.GetString(ReadBuf, 0, _readBufOffset);
-                            if (response == "bad")
+                            case "bad":
                                 _currentFlashStatus = FlasherStatus.Bad;
-                            else if (response == "good")
-                            {
+                                break;
+                            case "good":
                                 _currentFlashStatus = FlasherStatus.LastPacket;
                                 _readBufOffset = 0;
-                            }
-                            else if (_readBufOffset >= 4)
-                                _currentFlashStatus = FlasherStatus.WrongPacket;
-                            else
-                            {
-                                _timer.Interval = 1000;
-                                _timer.Start();
-                            }
+                                break;
+                            default:
+                                if (_readBufOffset >= 4)
+                                    _currentFlashStatus = FlasherStatus.WrongPacket;
+                                else
+                                {
+                                    _timer.Interval = 1000;
+                                    _timer.Start();
+                                }
+                                break;
                         }
+                    }
                         break;
                     default:
                         {
@@ -556,7 +566,7 @@ namespace BootLoader
                     xw.WriteElementString("SerialPort", _serialPort);
                     xw.WriteElementString("CryptIsEnabled", _isCryptingEnabled ? "true" : "false");
                     xw.WriteElementString("BaudRate", ComboBoxForSerialPortBaudrate.Text);
-                    ItemCollection itemCollection = ComboBoxForDeviceCode.Items;
+                    var itemCollection = ComboBoxForDeviceCode.Items;
                     if (!itemCollection.IsEmpty)
                     {
                         xw.WriteStartElement("ListOfDeveiceCodes");
