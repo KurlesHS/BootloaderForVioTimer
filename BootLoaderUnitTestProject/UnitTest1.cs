@@ -48,5 +48,4 @@ namespace BootLoaderUnitTestProject
             _count++;
         }
     }
-
 }

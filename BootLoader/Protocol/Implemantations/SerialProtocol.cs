@@ -2,10 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Ports;
-using System.Linq;
-using System.Security.Policy;
-using System.Text;
-using System.Windows.Markup;
 using BootLoader.Protocol.Interface;
 
 namespace BootLoader.Protocol.Implemantations
@@ -26,9 +22,7 @@ namespace BootLoader.Protocol.Implemantations
             var readedBytes = _serialPort.Read(_readBuffer, 0, _readBuffer.Length);
             var outBytes = new byte[readedBytes];
             Array.Copy(_readBuffer, 0, outBytes, 0, readedBytes);
-            foreach (var dataReceiverListener in _dataReceiverListeners) {
-                dataReceiverListener(this, outBytes);
-            }
+            IncomingData(this, outBytes);
         }
 
         public bool Open() {
@@ -55,8 +49,6 @@ namespace BootLoader.Protocol.Implemantations
             _serialPort.Write(dataBytes, 0, dataBytes.Length);
         }
 
-        public void AddReceiveDataListener(Action<object, byte[]> listener) {
-            _dataReceiverListeners.Add(listener);
-        }
+        public event IncomingDataHandler IncomingData;
     }
 }
