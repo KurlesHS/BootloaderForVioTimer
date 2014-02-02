@@ -1,21 +1,40 @@
-﻿using System.Timers;
+﻿using System;
+using System.Timers;
 using BootLoader.Interfaces;
 
 namespace BootLoader.Impl
 {
     public class Timer : ITimer
     {
-        private readonly System.Timers.Timer _timer = new System.Timers.Timer();
+        private System.Timers.Timer _timer = new System.Timers.Timer();
+        private bool _disposed;
 
         public Timer() {
-            _timer.Elapsed += _timer_Elapsed;    
+            _disposed = false;
+            _timer.Elapsed += _timer_Elapsed;
         }
 
-        void _timer_Elapsed(object sender, ElapsedEventArgs e) {
-            Elapsed(this, new TimerEventArg());
-        }   
+        ~Timer() {
+            Dispose(false);
+        }
+
         public void Dispose() {
-            _timer.Dispose();
+            Dispose(true);
+            GC.SuppressFinalize(this);
+        }
+
+        private void Dispose(bool disposing) {
+            if (_disposed) return;
+            if (disposing) {
+                _timer.Elapsed -= _timer_Elapsed;
+                _timer.Dispose();    
+            }
+            _timer = null;    
+            _disposed = true;
+        }
+        private void _timer_Elapsed(object sender, ElapsedEventArgs e)
+        {
+            Elapsed(this, new TimerEventArg());
         }
 
         public void Start(double interval) {
@@ -29,5 +48,8 @@ namespace BootLoader.Impl
 
         public event TimerEventHandler Elapsed;
 
+        public object Clone() {
+            return MemberwiseClone();
+        }
     }
 }

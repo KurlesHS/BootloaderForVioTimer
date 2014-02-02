@@ -1,4 +1,5 @@
-﻿using BootLoader.Impl;
+﻿using System;
+using BootLoader.Impl;
 using BootLoader.Interfaces;
 
 
@@ -10,6 +11,7 @@ namespace BootLoaderUnitTestProject
         private double _currentTime;
         private bool _isStarted;
         public void Dispose() {
+            
         }
 
         public void Start(double interval) {
@@ -34,5 +36,8 @@ namespace BootLoaderUnitTestProject
         }
 
         public event TimerEventHandler Elapsed;
+        public object Clone() {
+            return this.MemberwiseClone();
+        }
     }
 }

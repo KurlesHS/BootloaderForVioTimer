@@ -5,8 +5,7 @@
         public enum TypeOfPacket
         {
             FirstPacket,
-            MidlePacket,
-            LastPacket
+            DataPacket
         }
 
         public byte[] DataBytes { get; set ; }
