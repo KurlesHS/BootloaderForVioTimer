@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Xml;
 using BootLoader.Impl;
 using BootLoader.Interfaces;
 using BootLoader.Protocol.Interface;
@@ -13,18 +14,18 @@ namespace BootLoader.Device
     public delegate void SessionFinishedHandler(object sender);
 
     public class TimerDeviceImpl
-    {
+    {   
         private readonly IProtocol _protocol;
         private readonly ITimer _timer;
         private Packet _currentPacket;
         private Stream _stream;
-        private const int PacketLenght = 32;
-        private const int MidlePacketTimeout = 1000;
-        private const int LastPacketTimeout = 10000;
-        private const int DelayBetweenResendPacket = 2000;
-        private const int RetryCount = 3;
         private const string InternalErrorString = "Внутренняя ошибка, пинать Курлеса";
+        private readonly LinkedList<ITimer> _listOfTimers = new LinkedList<ITimer>();
 
+        public int PacketLenght { get; set; }
+        public Packet FirstPacketStamp { get; set; }
+        public Packet MiddlePacketStamp { get; set; }
+        public Packet LastPacketStamp { get; set; }
 
         public TimerDeviceImpl(IProtocol protocol, ITimer timer = null) {
             _protocol = protocol;
@@ -34,6 +35,35 @@ namespace BootLoader.Device
             _timer.Elapsed += TimerForTimeouts_Elapsed;
             _protocol.IncomingData += ProtocolOnIncomingData;
             _stream = null;
+        }
+
+        private void InitPacketStamps() {
+            FirstPacketStamp = new Packet {
+                BadResponse = "BAD",
+                OkResponse = "GO",
+                DataBytes = null,
+                RetryCount = -1,
+                WaitResponseTimeout = 3000,
+                DelayBetweenPacket = 300
+            };
+
+            MiddlePacketStamp = new Packet {
+                BadResponse = "BAD",
+                OkResponse = "GO",
+                DataBytes = null,
+                RetryCount = -1,
+                WaitResponseTimeout = 1000,
+                DelayBetweenPacket = 300
+            };
+
+            LastPacketStamp = new Packet {
+                BadResponse = "BAD",
+                OkResponse = "GO",
+                DataBytes = null,
+                RetryCount = -1,
+                WaitResponseTimeout = 10000,
+                DelayBetweenPacket = 300
+            };
         }
 
         private void ProtocolOnIncomingData(object sender, byte[] payload) {
@@ -48,16 +78,16 @@ namespace BootLoader.Device
             if (line == _currentPacket.OkResponse) {
                 SendNextPacket();
             } else if (line == _currentPacket.BadResponse) {
-                ResendCurrentPacketWithDelay(DelayBetweenResendPacket);
+                ResendCurrentPacketWithDelay(_currentPacket.DelayBetweenPacket);
             }
             if (payload.Length >= maxResponseLenght) {
-                ResendCurrentPacketWithDelay(DelayBetweenResendPacket);
+                ResendCurrentPacketWithDelay(_currentPacket.DelayBetweenPacket);
             }
         }
 
         private void ResendCurrentPacketWithDelay(double delay) {
             var timer = (ITimer) _timer.Clone();
-            GC.KeepAlive(timer);
+            _listOfTimers.AddLast(timer);
             timer.Elapsed += TimerOnElapsed;
             timer.Start(delay);
         }
@@ -66,6 +96,7 @@ namespace BootLoader.Device
             var timer = (ITimer) sender;
             if (timer == null) return;
             ResendCurrentPacket();
+            _listOfTimers.Remove(timer);
             timer.Dispose();
         }
 
@@ -90,14 +121,13 @@ namespace BootLoader.Device
                 FinishedHandler(this);
                 return;
             }
-            var isNextPacketPresent = IsNextPacketPresent();
+            var p = IsNextPacketPresent() ? MiddlePacketStamp : LastPacketStamp;
             var packet = new Packet {
-                WaitResponseTimeout = isNextPacketPresent ? MidlePacketTimeout : LastPacketTimeout,
+                WaitResponseTimeout = p.WaitResponseTimeout,
                 DataBytes = binaryPacketData,
-                OkResponse = "GOOD",
-                BadResponse = "BAD",
-                RetryCount = RetryCount,
-                Type = Packet.TypeOfPacket.DataPacket
+                OkResponse = p.OkResponse,
+                BadResponse = p.BadResponse,
+                RetryCount = p.RetryCount
             };
             _currentPacket = packet;
             SendCurrentPacket();
@@ -116,7 +146,7 @@ namespace BootLoader.Device
                 ErrorHandler(this, InternalErrorString);
                 return;
             }
-            if (_currentPacket.Type != Packet.TypeOfPacket.FirstPacket) {
+            if (_currentPacket.RetryCount != -1) {
                 --_currentPacket.RetryCount;
                 if (_currentPacket.RetryCount <= 0) {
                     _currentPacket = null;
@@ -131,61 +161,113 @@ namespace BootLoader.Device
         }
 
         public bool StartFlashing(Stream stream) {
+            const string errorString = @"Ошибочный файл.";
             if (!_protocol.Open()) return false;
+            InitPacketStamps();
             _stream = stream;
+            
+            var sb = new StringBuilder();
+            while (true) {
+                var _byte = _stream.ReadByte();
+                if (_byte < 0) {
+                    ErrorHandler(this, errorString);
+                    _protocol.Close();
+                    return false;
+                }
+                if (_byte == 0) break;
+                sb.Append(Convert.ToChar(_byte));
+            }
+            var xmlString = sb.ToString();
+
+            if (!GetPacketParametrsByXml(xmlString)) {
+                ErrorHandler(this, errorString);
+                _protocol.Close();
+                return false;
+            }
+
+            var buf = new byte[PacketLenght];
+
+            _stream.Read(buf, 0, PacketLenght);
+
+
             var packet = new Packet {
-                BadResponse = "BAD",
-                DataBytes = Encoding.ASCII.GetBytes("START"),
-                OkResponse = "GO",
-                RetryCount = -1,
-                Type = Packet.TypeOfPacket.FirstPacket,
-                WaitResponseTimeout = 3000
+                BadResponse = FirstPacketStamp.BadResponse,
+                DataBytes = buf,
+                OkResponse = FirstPacketStamp.OkResponse,
+                RetryCount = FirstPacketStamp.RetryCount,
+                WaitResponseTimeout = FirstPacketStamp.WaitResponseTimeout
             };
             _currentPacket = packet;
             SendCurrentPacket();
             return true;
         }
 
-        private static UInt16 ChkSum(IList<byte> array, int lenght) {
-            UInt64 sum = 0;
-            var i = 0;
-            if (array.Count < lenght) {
-                lenght = array.Count;
+        public bool GetPacketParametrsByXml(string xmlString) {
+            var xmlDocumet = new XmlDocument();
+            try {
+                xmlDocumet.LoadXml(xmlString);
+                var elementsByTagName = xmlDocumet.GetElementsByTagName("packet_length");
+                if (elementsByTagName.Count != 1) return false;
+                var element = elementsByTagName.Item(0);
+                if (element == null) return false;
+                PacketLenght = Convert.ToInt32(element.InnerText);
+                var packets = new Dictionary<string, Packet> {
+                    {"first_packet", FirstPacketStamp},
+                    {"middle_packet", MiddlePacketStamp},
+                    {"last_packet", LastPacketStamp}
+                };
+                foreach (var packetName in packets.Keys) {
+                    var packet = packets[packetName];
+                    elementsByTagName = xmlDocumet.GetElementsByTagName(packetName);
+                    element = elementsByTagName.Item(0);
+                    if (element == null) return false;
+                    foreach (XmlNode subElement in element.ChildNodes) {
+                        var value = subElement.InnerText.Trim();
+                        switch (subElement.Name) {
+                            case "ok_response":
+                                packet.OkResponse = value;
+                                break;
+                            case "error_response":
+                                packet.BadResponse = value;
+                                break;
+                            case "retry_count":
+                                packet.RetryCount = Convert.ToInt32(value);
+                                break;
+                            case "timeout":
+                                packet.WaitResponseTimeout = Convert.ToInt32(value);
+                                break;
+                            case "delay_between_resend_packet":
+                                packet.DelayBetweenPacket = Convert.ToInt32(value);
+                                break;
+                        }
+                    }
+                }
+            } catch (Exception) {
+                return false;
             }
-            while (i < lenght) {
-                sum += ((UInt64) array[i++] << 8) + array[i++];
-            }
-            sum = (sum >> 16) + (sum & 0xffff);
-            sum += (sum >> 16);
-            var answer = (UInt16) ~sum;
-            return answer;
+            return true;
         }
 
         private byte[] GetNextPacket() {
             if (_stream == null) return null;
-            var buffer = new byte[PacketLenght + 2];
+            var buffer = new byte[PacketLenght];
             FillArrayWithValue(buffer, 0x00);
             var lenght = _stream.Read(buffer, 0, PacketLenght);
-            var chk = ChkSum(buffer, PacketLenght);
+            //var chk = ChkSum(buffer, PacketLenght);
             // now add crc to packet
-            buffer[PacketLenght] = (byte) (chk & 0xff);
-            buffer[PacketLenght + 1] = (byte) ((chk >> 8) & 0xff);
+            //buffer[PacketLenght] = (byte) (chk & 0xff);
+            //buffer[PacketLenght + 1] = (byte) ((chk >> 8) & 0xff);
             return lenght == 0 ? null : buffer;
         }
 
         private bool IsNextPacketPresent() {
-            return _stream.Length != 0;
+            var length = _stream.Length;
+            return length != 0;
         }
 
         private static void FillArrayWithValue(byte[] array, byte value) {
             if (array == null) return;
             for (var idx = 0; idx < array.Length; ++idx) array[idx] = value;
-        }
-
-        public bool ConnectAndStartSendingPackets() {
-            if (!_protocol.Open()) return false;
-            SendCurrentPacket();
-            return true;
         }
 
         public event ErrorDataHandler ErrorHandler;

@@ -1,4 +1,7 @@
-﻿using BootLoader.Device;
+﻿using System;
+using System.IO;
+using System.Text;
+using BootLoader.Device;
 using BootLoader.Impl;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 
@@ -8,25 +11,24 @@ namespace BootLoaderUnitTestProject
     public class UnitTest1
     {
         private int _count;
+        public TestContext TestContext { get; set; }
+
 
         [TestMethod]
         public void TestPacket() {
 
             var p = new Packet();
             var data = new byte[0x200];
-            const Packet.TypeOfPacket type = Packet.TypeOfPacket.FirstPacket;
             const string okResponce = "OK";
             const string badResponce = "BAD";
             const int waitResponce = 3000;
             const int retryCount = 3;
             p.DataBytes = data;
-            p.Type = type;
             p.OkResponse = okResponce;
             p.BadResponse = badResponce;
             p.WaitResponseTimeout = waitResponce;
             p.RetryCount = retryCount;
             Assert.AreEqual(p.DataBytes, data);
-            Assert.AreEqual(p.Type, type);
             Assert.AreEqual(p.OkResponse, okResponce);
             Assert.AreEqual(p.BadResponse, badResponce);
             Assert.AreEqual(p.WaitResponseTimeout, waitResponce);
@@ -46,6 +48,49 @@ namespace BootLoaderUnitTestProject
         private void OnElapsed(object sender, TimerEventArg timerEventArg)
         {
             _count++;
+        }
+
+        private bool _finished;
+        private string _errorString;
+        [TestMethod]
+        [DeploymentItem(@"xml_loader_prefix.xml")]
+        public void TestDeviceImplementation() {
+            string xmlString = File.ReadAllText(@"xml_loader_prefix.xml");
+            const int packetLenght = 34;
+            const int packetCount = 0x100;
+            var buffer = new Byte[packetLenght*packetCount + xmlString.Length + 1];
+            Array.Copy(Encoding.ASCII.GetBytes(xmlString), buffer, xmlString.Length);
+            buffer[xmlString.Length] = 0x00;
+            var memoryStream = new MemoryStream(buffer);
+            var protocol = new FakeProtocol();
+            var timer = new FakeTimer();
+            var device = new TimerDeviceImpl(protocol, timer) {PacketLenght = packetLenght};
+            _errorString = "";
+            _finished = false;
+            device.FinishedHandler += device_FinishedHandler;
+            device.ErrorHandler += device_ErrorHandler;
+            Assert.IsTrue(device.StartFlashing(memoryStream));
+            for (var i = 0; i < 100; ++i)
+                timer.Advance(3500);
+            var iterCount = 0;
+            while (!_finished) {
+                protocol.Process();
+                iterCount++;
+                if (iterCount == 100)
+                    timer.Advance(1001);
+            }
+            Assert.AreEqual(packetCount + 1 + 100, protocol.PacketCount);
+            Assert.AreEqual("", _errorString);
+        }
+
+        void device_ErrorHandler(object sender, string description) {
+            _finished = true;
+            _errorString = description;
+            
+        }
+
+        void device_FinishedHandler(object sender) {
+            _finished = true;
         }
     }
 }

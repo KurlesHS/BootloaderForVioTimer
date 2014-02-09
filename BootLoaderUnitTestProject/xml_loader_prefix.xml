@@ -1,0 +1,25 @@
+﻿<?xml version="1.0" encoding="utf-8" ?>
+<vio_timer>
+	<packet_length>34</packet_length>
+	<baudrate>38400</baudrate>
+	<first_packet>
+		<ok_response>GO</ok_response>
+		<error_response>BAD</error_response>
+		<retry_count>-1</retry_count>
+		<timeout>3000</timeout>
+	</first_packet>
+	<middle_packet>
+		<ok_response>GOOD</ok_response>
+		<error_response>BAD</error_response>
+		<retry_count>3</retry_count>
+		<timeout>1000</timeout>
+		<delay_between_resend_packet>300</delay_between_resend_packet>
+	</middle_packet>
+	<last_packet>
+		<ok_response>GOOD</ok_response>
+		<error_response>BAD</error_response>
+		<retry_count>3</retry_count>
+		<timeout>10000</timeout>
+		<delay_between_resend_packet>300</delay_between_resend_packet>
+	</last_packet>
+</vio_timer>
