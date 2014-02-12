@@ -14,6 +14,8 @@ Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BootLoaderUnitTestProject",
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ForTesting", "ForTesting\ForTesting.csproj", "{442919CF-8FFF-4817-B599-BE85AE3F01FD}"
 EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "WpfApplication1", "WpfApplication1\WpfApplication1.csproj", "{07291246-6366-445C-A2BA-22D4BB80327C}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -32,6 +34,10 @@ Global
 		{442919CF-8FFF-4817-B599-BE85AE3F01FD}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{442919CF-8FFF-4817-B599-BE85AE3F01FD}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{442919CF-8FFF-4817-B599-BE85AE3F01FD}.Release|Any CPU.Build.0 = Release|Any CPU
+		{07291246-6366-445C-A2BA-22D4BB80327C}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{07291246-6366-445C-A2BA-22D4BB80327C}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{07291246-6366-445C-A2BA-22D4BB80327C}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{07291246-6366-445C-A2BA-22D4BB80327C}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
