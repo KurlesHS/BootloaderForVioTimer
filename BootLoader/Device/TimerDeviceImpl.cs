@@ -253,10 +253,6 @@ namespace BootLoader.Device
             var buffer = new byte[PacketLenght];
             FillArrayWithValue(buffer, 0x00);
             var lenght = _stream.Read(buffer, 0, PacketLenght);
-            //var chk = ChkSum(buffer, PacketLenght);
-            // now add crc to packet
-            //buffer[PacketLenght] = (byte) (chk & 0xff);
-            //buffer[PacketLenght + 1] = (byte) ((chk >> 8) & 0xff);
             return lenght == 0 ? null : buffer;
         }
 

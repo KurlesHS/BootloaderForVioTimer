@@ -1,14 +1,142 @@
 ﻿<Window x:Class="WpfApplication1.MainWindow"
         xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
-        Title="MainWindow" Height="350" Width="525">
-    <Grid Margin="0,0,-93,-30">
-        <GroupBox Header="Длинна пакета (без крк)" HorizontalAlignment="Left" Margin="10,10,0,0" VerticalAlignment="Top" Height="84" Width="157">
-            <TextBox Text="TextBox"/>
+        xmlns:local="clr-namespace:WpfApplication1"
+        Title="Починялка образа флеша для прошивальшика" Height="407" Width="1016">
+    <Grid>
+        <Grid.RowDefinitions>
+            <RowDefinition Height="Auto"/>
+            <RowDefinition Height="*"/>
+            <RowDefinition Height="Auto"></RowDefinition>
+        </Grid.RowDefinitions>
+        <GroupBox Header="Общие настройки">
+            <Grid>
+                <Grid.ColumnDefinitions>
+                    <ColumnDefinition Width="*"></ColumnDefinition>
+                    <ColumnDefinition Width="*"></ColumnDefinition>
+                    <ColumnDefinition Width="*"></ColumnDefinition>
+                </Grid.ColumnDefinitions>
+                <Grid.RowDefinitions>
+                    <RowDefinition Height="Auto"></RowDefinition>
+                    <RowDefinition Height="Auto"></RowDefinition>
+                </Grid.RowDefinitions>
+                <GroupBox Grid.Column="0" Grid.Row="0" Header="Адрес начала" VerticalAlignment="Stretch">
+                    <local:NumericTextBox x:Name="StartAddressTextBox"/>
+                </GroupBox>
+                <GroupBox Grid.Column="1" Grid.Row="0" Header="Длинна пакета (без крк)">
+                    <local:NumericTextBox x:Name="PacketLenghtTextBox"/>
+                </GroupBox>
+                <GroupBox Grid.Column="2" Grid.Row="0" Header="Скорость передачи">
+                    <ComboBox Name="BaudrateComboBox"></ComboBox>
+                </GroupBox>
+                <GroupBox Header="Файл" Grid.Column="0" Grid.Row="1" Grid.ColumnSpan="3">
+                    <Grid>
+                        <Grid.ColumnDefinitions>
+                            <ColumnDefinition Width="*"></ColumnDefinition>
+                            <ColumnDefinition Width="Auto"></ColumnDefinition>
+                        </Grid.ColumnDefinitions>
+                        <TextBox Grid.Column="0" IsReadOnly="True" Name="FilenameTextBox"/>
+                        <Button Grid.Column="1">Выбор файла</Button>
+                    </Grid>
+                </GroupBox>
+            </Grid>
         </GroupBox>
-        <GroupBox Header="Адрес начала" HorizontalAlignment="Left" Margin="192,10,0,0" VerticalAlignment="Top" Height="84" Width="157">
-            <TextBox Text="TextBox"/>
-        </GroupBox>
+        <Grid Grid.Row="2">
+            <Grid.ColumnDefinitions>
+                <ColumnDefinition></ColumnDefinition>
+                <ColumnDefinition></ColumnDefinition>
+                <ColumnDefinition></ColumnDefinition>
+            </Grid.ColumnDefinitions>
+            <GroupBox Header="Стартовый пакет" Grid.Column="0">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition></ColumnDefinition>
+                        <ColumnDefinition></ColumnDefinition>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition></RowDefinition>
+                        <RowDefinition></RowDefinition>
+                        <RowDefinition></RowDefinition>
+                    </Grid.RowDefinitions>
+                    <GroupBox Header="Код устройства" Grid.Row="0" Grid.Column="0">
+                        <TextBox x:Name="DeviceCodeTextBox"></TextBox>
+                    </GroupBox>
+                    <GroupBox Header="Кол-во попыток" Grid.Row="0" Grid.Column="1">
+                        <local:NumericTextBox x:Name="StartPacketTryCountNumericTextBox"/>
 
+                    </GroupBox>
+                    <GroupBox Header="ОК отклик" Grid.Row="1" Grid.Column="0">
+                        <TextBox x:Name="StartPacketOkResponseTextBox"/>
+
+                    </GroupBox>
+                    <GroupBox Header="Ошибочный отклик" Grid.Row="1" Grid.Column="1">
+                        <TextBox x:Name="StartPacketBadResponseTextBox"/>
+                    </GroupBox>
+                    <GroupBox Header="Таймаут ожидания" Grid.Row="2" Grid.Column="0">
+                        <local:NumericTextBox x:Name="StartPacketTimeout"/>
+                    </GroupBox>
+                    <GroupBox Header="Пауза между посылками" Grid.Row="2" Grid.Column="1">
+                        <local:NumericTextBox x:Name="StartPacketDelayBetweenWrongPacketNumericTextBox"/>
+                    </GroupBox>
+                </Grid>
+            </GroupBox>
+            <GroupBox Header="Полезные пакеты" Grid.Column="1">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition></ColumnDefinition>
+                        <ColumnDefinition></ColumnDefinition>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition></RowDefinition>
+                        <RowDefinition></RowDefinition>
+                        <RowDefinition></RowDefinition>
+                    </Grid.RowDefinitions>
+                    <GroupBox Header="Кол-во попыток" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2">
+                        <local:NumericTextBox x:Name="MiddlePacketTryCountNumericTextBox"/>
+                    </GroupBox>
+                    <GroupBox Header="ОК отклик" Grid.Row="1" Grid.Column="0">
+                        <TextBox x:Name="MiddlePacketOkResponceTextBox"></TextBox>
+                    </GroupBox>
+                    <GroupBox Header="Ошибочный отклик" Grid.Row="1" Grid.Column="1">
+                        <TextBox x:Name="MiddlePacketBadResponceTextBox"></TextBox>
+                    </GroupBox>
+                    <GroupBox Header="Таймаут ожидания" Grid.Row="2" Grid.Column="0">
+                        <local:NumericTextBox x:Name="MiddlePacketTimeout"/>
+                    </GroupBox>
+                    <GroupBox Header="Пауза между посылками" Grid.Row="2" Grid.Column="1">
+                        <local:NumericTextBox x:Name="MiddlePacketTryDelayBetweenWrongPacketNumericTextBox"/>
+                    </GroupBox>
+                </Grid>
+            </GroupBox>
+            <GroupBox Header="Последний пакет" Grid.Column="2">
+                <Grid>
+                    <Grid.ColumnDefinitions>
+                        <ColumnDefinition></ColumnDefinition>
+                        <ColumnDefinition></ColumnDefinition>
+                    </Grid.ColumnDefinitions>
+                    <Grid.RowDefinitions>
+                        <RowDefinition></RowDefinition>
+                        <RowDefinition></RowDefinition>
+                        <RowDefinition></RowDefinition>
+                    </Grid.RowDefinitions>
+                    <GroupBox Header="Кол-во попыток" Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2">
+                        <local:NumericTextBox x:Name="LastPacketTryCountNumericTextBox"/>
+                    </GroupBox>
+                    <GroupBox Header="ОК отклик" Grid.Row="1" Grid.Column="0">
+                        <TextBox x:Name="LastPacketOkResponceTextBox"></TextBox>
+                    </GroupBox>
+                    <GroupBox Header="Ошибочный отклик" Grid.Row="1" Grid.Column="1">
+                        <TextBox x:Name="LastPacketBadResponceTextBox"></TextBox>
+                    </GroupBox>
+                    <GroupBox Header="Таймаут ожидания" Grid.Row="2" Grid.Column="0">
+                        <local:NumericTextBox x:Name="LastPacketTimeout"/>
+                    </GroupBox>
+                    <GroupBox Header="Пауза между посылками" Grid.Row="2" Grid.Column="1">
+                        <local:NumericTextBox x:Name="LastPacketTryDelayBetweenWrongPacketNumericTextBox"/>
+                    </GroupBox>
+                </Grid>
+            </GroupBox>
+        </Grid>
+        <Button Grid.Row="1" HorizontalAlignment="Stretch" VerticalAlignment="Stretch" FontSize="30" FontStyle="Oblique" Foreground="DarkRed">Сделать хорошо</Button>
     </Grid>
 </Window>
