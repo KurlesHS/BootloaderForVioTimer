@@ -111,12 +111,17 @@
                                             <RowDefinition/>
                                         </Grid.RowDefinitions>
                                         <Rectangle x:Name="LeftDark" Fill="{StaticResource ProgressBarIndicatorDarkEdgeLeft}" Margin="1,1,0,1" RadiusY="1" RadiusX="1" Grid.RowSpan="2"/>
-                                        <Rectangle x:Name="RightDark" Grid.Column="2" Fill="{StaticResource ProgressBarIndicatorDarkEdgeRight}" Margin="0,1,1,1" RadiusY="1" RadiusX="1" Grid.RowSpan="2"/>
-                                        <Rectangle x:Name="LeftLight" Grid.Column="0" Fill="{StaticResource ProgressBarIndicatorLightingEffectLeft}" Grid.Row="2"/>
-                                        <Rectangle x:Name="CenterLight" Grid.Column="1" Fill="{StaticResource ProgressBarIndicatorLightingEffect}" Grid.Row="2"/>
-                                        <Rectangle x:Name="RightLight" Grid.Column="2" Fill="{StaticResource ProgressBarIndicatorLightingEffectRight}" Grid.Row="2"/>
-                                        <Border x:Name="Highlight1" Background="{StaticResource ProgressBarIndicatorGlassyHighlight}" Grid.ColumnSpan="3" Grid.RowSpan="2"/>
-                                        <Border x:Name="Highlight2" Background="{StaticResource ProgressBarTopHighlight}" Grid.ColumnSpan="3" Grid.RowSpan="2"/>
+                                        <Rectangle x:Name="RightDark" Grid.Column="2" Fill="{StaticResource ProgressBarIndicatorDarkEdgeRight}" Margin="0,1,1,1" RadiusY="1" RadiusX="1"
+                                                   Grid.Row="0" Grid.RowSpan="2"/>
+                                        <Rectangle x:Name="LeftLight" Grid.Column="0" Fill="{StaticResource ProgressBarIndicatorLightingEffectLeft}" Grid.Row="1"/>
+                                        <Rectangle x:Name="CenterLight" Grid.Column="1" Fill="{StaticResource ProgressBarIndicatorLightingEffect}" Grid.Row="1"/>
+                                        <Rectangle x:Name="RightLight" Grid.Column="2" Fill="{StaticResource ProgressBarIndicatorLightingEffectRight}" Grid.Row="1"/>
+                                        <Border x:Name="Highlight1" Background="{StaticResource ProgressBarIndicatorGlassyHighlight}" Grid.ColumnSpan="3"
+                                                Grid.Column="0"
+                                                Grid.Row="0" Grid.RowSpan="2"/>
+                                        <Border x:Name="Highlight2" Background="{StaticResource ProgressBarTopHighlight}" Grid.ColumnSpan="3"
+                                                Grid.Column="0"
+                                                Grid.Row="0" Grid.RowSpan="2"/>
                                     </Grid>
                                 </Grid>
                             </Decorator>
