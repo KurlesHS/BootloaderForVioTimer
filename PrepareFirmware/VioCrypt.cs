@@ -5,29 +5,19 @@ namespace PrepareFirmware
     {
         private readonly byte[] _bufferForInternalUse;
         private byte[] _cryptTable;
+        private byte[] _decryptTable;
+
 
         public byte[] CryptTable {
             get { return _cryptTable; }
-            set {
-                
-                var tempVar = value;
-                if (tempVar != null) {
-                    if (tempVar.Length != 0x100) {
-                        tempVar = null;
-                    } else {
-                        CleanInternalBuffer();
-                        for (var idx = 0; idx < tempVar.Length; ++idx) {
-                            ++_bufferForInternalUse[tempVar[idx]];
-                            if (_bufferForInternalUse[tempVar[idx]] == 1) continue;
-                            tempVar = null;
-                            break;
-                        }
-                    }
-                }
-                _cryptTable = tempVar;
-            }
+            set { _cryptTable = CheckTableForCorrectData(value) ? value : null; }   
         }
-        public byte[] DecryptTable { get; set; }
+
+        public byte[] DecryptTable {
+            get { return _decryptTable; }
+            set { _decryptTable = CheckTableForCorrectData(value) ? value : null; }   
+        }
+
         private byte _cryptPointer;
         private byte _decryptPointer;
         public VioCrypt() {
@@ -35,6 +25,20 @@ namespace PrepareFirmware
             CryptTable = null;
             DecryptTable = null;
             _bufferForInternalUse = new byte[0x100];
+        }
+
+        private bool CheckTableForCorrectData(byte[] tableBytes)
+        {
+            if (tableBytes == null) return false;
+            if (tableBytes.Length != 0x100) return false;
+            CleanInternalBuffer();
+            foreach (var idx in tableBytes)
+            {
+                ++_bufferForInternalUse[idx];
+                if (_bufferForInternalUse[idx] == 1) continue;
+                return false;
+            }
+            return true;
         }
 
         public void ResetCryptState() {
