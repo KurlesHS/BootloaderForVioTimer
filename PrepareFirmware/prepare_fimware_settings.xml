@@ -1,0 +1,30 @@
+﻿<?xml version="1.0" encoding="UTF-8"?>
+<PrepareFirmwareSettings>
+  <Baudrate>19200</Baudrate>
+  <StartAddress>8388608</StartAddress>
+  <PacketLenght>32</PacketLenght>
+  <FirmwareFile>c:/firmware</FirmwareFile>
+  <CryptoFile>c:/crypto</CryptoFile>
+  <StartPacket>
+    <DeviceCode>123</DeviceCode>
+    <RetryCount>-1</RetryCount>
+    <OkResponce>GO</OkResponce>
+    <BadResponce>BAD</BadResponce>
+    <TimeoutBetweenPacket>3</TimeoutBetweenPacket>
+    <Timeout>3</Timeout>
+  </StartPacket>
+  <MiddlePacket>
+    <RetryCount>3</RetryCount>
+    <OkResponce>GOOD</OkResponce>
+    <BadResponce>BAD</BadResponce>
+    <TimeoutBetweenPacket>3</TimeoutBetweenPacket>
+    <Timeout>3</Timeout>
+  </MiddlePacket>
+  <LastPacket>
+    <RetryCount>3</RetryCount>
+    <OkResponce>GOOD</OkResponce>
+    <BadResponce>BAD</BadResponce>
+    <TimeoutBetweenPacket>3</TimeoutBetweenPacket>
+    <Timeout>3</Timeout>
+  </LastPacket>
+</PrepareFirmwareSettings>

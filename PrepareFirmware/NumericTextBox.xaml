@@ -1,0 +1,32 @@
+﻿<UserControl x:Class="PrepareFirmware.NumericTextBox"
+             xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
+             xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
+             xmlns:mc="http://schemas.openxmlformats.org/markup-compatibility/2006" 
+             xmlns:d="http://schemas.microsoft.com/expression/blend/2008"
+             x:Name="UserControl"
+             mc:Ignorable="d" d:DesignWidth="472" d:DesignHeight="23.96">
+    <UserControl.Resources>
+        <BitmapImage x:Key="ArrowUpImage" UriSource="Images/arrow_up.png" />
+        <BitmapImage x:Key="ArrowDownImage" UriSource="Images/arrow_down.png" />
+    </UserControl.Resources>
+    <Grid>
+        <Grid.ColumnDefinitions>
+            <ColumnDefinition Width="*"></ColumnDefinition>
+            <ColumnDefinition Width="Auto"></ColumnDefinition>
+        </Grid.ColumnDefinitions>
+        <TextBox Grid.Column="0" x:Name="InnerTextBox" TextChanged="InnerTextBox_OnTextChanged" PreviewMouseWheel="InnerTextBox_PreviewMouseWheel" Text="{Binding ElementName=UserControl, Path=ValueAsString, Mode=TwoWay}" PreviewTextInput="InnerTextBox_PreviewTextInput"/>
+        <Grid Grid.Column="1">
+            <Grid.RowDefinitions>
+                <RowDefinition></RowDefinition>
+                <RowDefinition></RowDefinition>
+            </Grid.RowDefinitions>
+            <Button MinHeight="0" Grid.Row="0" MinWidth="15" PreviewMouseUp="DownButton_OnMouseButtonUp" PreviewMouseDown="DownButton_OnMouseRightButtonDown">
+                <Image Width="10" Height="6" Source="{StaticResource ArrowUpImage}"></Image>
+            </Button>
+            <Button x:Name="DownButton" Grid.Row="1" PreviewMouseLeftButtonDown="DownButton_OnMouseLeftButtonDown" PreviewMouseLeftButtonUp="DownButton_OnMouseButtonUp">
+                <Image Width="10" Height="6" x:Name="UpImage" Source="{StaticResource ArrowDownImage}"></Image>
+            </Button>
+        </Grid>
+    </Grid>
+</UserControl>
+    
