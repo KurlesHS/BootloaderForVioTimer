@@ -10,6 +10,7 @@ EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "BootLoaderUnitTestProject", "BootLoaderUnitTestProject\BootLoaderUnitTestProject.csproj", "{A107D955-ED43-44E7-AEC3-439E6CC6D4AF}"
 	ProjectSection(ProjectDependencies) = postProject
 		{BCD627A2-5D61-428D-8A0E-30FD4D8EAB04} = {BCD627A2-5D61-428D-8A0E-30FD4D8EAB04}
+		{C22D1ADF-C654-4608-B0EE-372AD66F6568} = {C22D1ADF-C654-4608-B0EE-372AD66F6568}
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "ForTesting", "ForTesting\ForTesting.csproj", "{442919CF-8FFF-4817-B599-BE85AE3F01FD}"

@@ -64,8 +64,18 @@
       <Project>{BCD627A2-5D61-428D-8A0E-30FD4D8EAB04}</Project>
       <Name>BootLoader</Name>
     </ProjectReference>
+    <ProjectReference Include="..\PrepareFirmware\PrepareFirmware.csproj">
+      <Project>{C22D1ADF-C654-4608-B0EE-372AD66F6568}</Project>
+      <Name>PrepareFirmware</Name>
+    </ProjectReference>
   </ItemGroup>
   <ItemGroup>
+    <None Include="crypt.bin">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
+    <None Include="decrypt.bin">
+      <CopyToOutputDirectory>Always</CopyToOutputDirectory>
+    </None>
     <None Include="packages.config" />
   </ItemGroup>
   <ItemGroup>

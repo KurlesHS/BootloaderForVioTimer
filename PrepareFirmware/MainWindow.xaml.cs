@@ -204,9 +204,8 @@ namespace PrepareFirmware
         }
 
         private void SaveSettings() {
-            var settings = new XmlWriterSettings {Indent = true, IndentChars = (" ")};
+            var settings = new XmlWriterSettings {Indent = true, IndentChars = (" "), Encoding = new UTF8Encoding(false)};
             using (var writer = XmlWriter.Create(SettingsFile, settings)) {
-                // Write XML data.
                 writer.WriteStartElement(RootTag);
 
                 writer.WriteElementString(BaudrateTag, BaudrateComboBox.SelectedItem.ToString());
@@ -244,7 +243,6 @@ namespace PrepareFirmware
                 writer.WriteEndElement();
 
                 writer.WriteEndElement();
-                writer.Flush();
             }
         }
 
@@ -328,7 +326,59 @@ namespace PrepareFirmware
             var filename = dlg.FileName;
             try {
                 var fileStream = new FileStream(filename, FileMode.Create);
+                var xmlSettings = new XmlWriterSettings { Indent = true, IndentChars = (" "), Encoding = new UTF8Encoding(false)};
+                using (var writer = XmlWriter.Create(fileStream, xmlSettings)) {
+                    // Write XML data.
+                    const string rootTag = "vio_timer";
+                    const string packetLenghtTag = "packet_length";
+                    const string startPacketTag = "first_packet";
+                    const string middlePacketTag = "middle_packet";
+                    const string lastPacketTag = "last_packet";
+                    const string baudrateTag = "baudrate";
+                    const string okResponceTag = "ok_response";
+                    const string badResponceTag = "error_response";
+                    const string retryCountTag = "retry_count";
+                    const string timeoutTag = "timeout";
+                    const string delayBetweenResendPacket = "delay_between_resend_packet";
+
+
+                    writer.WriteStartElement(rootTag);
+
+                    writer.WriteElementString(baudrateTag, BaudrateComboBox.SelectedItem.ToString());
+                    writer.WriteElementString(packetLenghtTag, Convert.ToString(PacketLenghtTextBox.Value + 2));
+
+                    writer.WriteStartElement(startPacketTag);
+                    writer.WriteElementString(okResponceTag, StartPacketOkResponseTextBox.Text);
+                    writer.WriteElementString(badResponceTag, StartPacketBadResponseTextBox.Text);
+                    writer.WriteElementString(retryCountTag, Convert.ToString(StartPacketTryCountNumericTextBox.Value));
+                    writer.WriteElementString(timeoutTag, Convert.ToString(StartPacketTimeoutTextBox.Value));
+                    writer.WriteElementString(delayBetweenResendPacket,
+                        Convert.ToString(StartPacketDelayBetweenWrongPacketNumericTextBox.Value));
+                    writer.WriteEndElement();
+
+                    writer.WriteStartElement(middlePacketTag);
+                    writer.WriteElementString(okResponceTag, MiddlePacketOkResponceTextBox.Text);
+                    writer.WriteElementString(badResponceTag, MiddlePacketBadResponceTextBox.Text);
+                    writer.WriteElementString(retryCountTag, Convert.ToString(MiddlePacketTryCountNumericTextBox.Value));
+                    writer.WriteElementString(timeoutTag, Convert.ToString(MiddlePacketTimeoutTextBox.Value));
+                    writer.WriteElementString(delayBetweenResendPacket,
+                        Convert.ToString(MiddlePacketDelayBetweenWrongPacketNumericTextBox.Value));
+                    writer.WriteEndElement();
+
+                    writer.WriteStartElement(lastPacketTag);
+                    writer.WriteElementString(okResponceTag, LastPacketOkResponceTextBox.Text);
+                    writer.WriteElementString(badResponceTag, LastPacketBadResponceTextBox.Text);
+                    writer.WriteElementString(retryCountTag, Convert.ToString(LastPacketTryCountNumericTextBox.Value));
+                    writer.WriteElementString(timeoutTag, Convert.ToString(LastPacketTimeoutTextBox.Value));
+                    writer.WriteElementString(delayBetweenResendPacket,
+                        Convert.ToString(LastPacketDelayBetweenWrongPacketNumericTextBox.Value));
+                    writer.WriteEndElement();
+
+                    writer.WriteEndElement();
+                    writer.Flush();
+                }
                 using (var writer = new BinaryWriter(fileStream)) {
+                    writer.Write((byte)0x00);
                     _cryptPointer = 0x00;
                     var packetLen = PacketLenghtTextBox.Value;
                     var buffer = new byte[packetLen + 2];

@@ -4,6 +4,7 @@ using System.Text;
 using BootLoader.Device;
 using BootLoader.Impl;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
+using PrepareFirmware;
 
 namespace BootLoaderUnitTestProject
 {
@@ -13,10 +14,63 @@ namespace BootLoaderUnitTestProject
         private int _count;
         public TestContext TestContext { get; set; }
 
+        [TestMethod]
+        [DeploymentItem(@"crypt.bin")]
+        [DeploymentItem(@"decrypt.bin")]
+        public void TestVioCrypt() {
+            byte[] cryptTable = LoadTable("crypt.bin", "can't load crypt table");
+            byte[] decryptTable = LoadTable("decrypt.bin", "can't load decrypt table");
+            var testObject = new VioCrypt {CryptTable = cryptTable, DecryptTable = decryptTable};
+            Assert.IsNotNull(testObject.DecryptTable);
+            Assert.IsNotNull(testObject.CryptTable);
+
+            var testBytearray = new byte[0x10000];
+            var cryptedBytearray = new byte[0x10000];
+            var decryptedBytearray = new byte[0x10000];
+            var rnd = new Random((int) DateTime.Now.Ticks);
+            for (var idx = 0; idx < testBytearray.Length; ++idx) testBytearray[idx] = (byte) rnd.Next(0, 0x100);
+            const int packetLen = 0x20;
+            var packetCount = testBytearray.Length / packetLen;
+            testObject.ResetCryptState();
+            var internalBuffer = new byte[packetLen];
+            // шифруем
+            for (var packetNum = 0; packetNum < packetCount; ++packetNum) {
+                Array.Copy(testBytearray, packetNum * packetLen, internalBuffer, 0, packetLen);
+                var result = testObject.ContinueCrypt(internalBuffer);
+                Array.Copy(result, 0, cryptedBytearray, packetNum * packetLen, packetLen);
+            }
+            // обратная операция
+            testObject.ResetCryptState();
+            for (var packetNum = 0; packetNum < packetCount; ++packetNum)
+            {
+                Array.Copy(cryptedBytearray, packetNum * packetLen, internalBuffer, 0, packetLen);
+                var result = testObject.ContinueCrypt(internalBuffer);
+                Array.Copy(result, 0, decryptedBytearray, packetNum * packetLen, packetLen);
+            }
+
+            for (var idx = 0; idx < testBytearray.Length; ++idx) {
+                Assert.AreEqual(testBytearray[idx], decryptedBytearray[idx], "error on index:" + idx);
+            }
+        }
+
+        private static byte[] LoadTable(string filename, string errorString) {
+            if (errorString == null) throw new ArgumentNullException("errorString");
+            byte[] table = null;
+            try {
+                using (var reader = new BinaryReader(new FileStream(filename, FileMode.Open, FileAccess.Read))) {
+                    table = reader.ReadBytes(0x100);
+                }
+            } catch (Exception) {
+                Assert.Fail(errorString);
+            }
+            Assert.IsNotNull(table);
+            Assert.AreEqual(0x100, table.Length);
+            return table;
+        }
+
 
         [TestMethod]
         public void TestPacket() {
-
             var p = new Packet();
             var data = new byte[0x200];
             const string okResponce = "OK";
@@ -45,20 +99,20 @@ namespace BootLoaderUnitTestProject
             Assert.AreEqual(10, _count);
         }
 
-        private void OnElapsed(object sender, TimerEventArg timerEventArg)
-        {
+        private void OnElapsed(object sender, TimerEventArg timerEventArg) {
             _count++;
         }
 
         private bool _finished;
         private string _errorString;
+
         [TestMethod]
         [DeploymentItem(@"xml_loader_prefix.xml")]
         public void TestDeviceImplementation() {
             string xmlString = File.ReadAllText(@"xml_loader_prefix.xml");
             const int packetLenght = 34;
             const int packetCount = 0x100;
-            var buffer = new Byte[packetLenght*packetCount + xmlString.Length + 1];
+            var buffer = new Byte[packetLenght * packetCount + xmlString.Length + 1];
             Array.Copy(Encoding.ASCII.GetBytes(xmlString), buffer, xmlString.Length);
             buffer[xmlString.Length] = 0x00;
             var memoryStream = new MemoryStream(buffer);
@@ -83,13 +137,12 @@ namespace BootLoaderUnitTestProject
             Assert.AreEqual("", _errorString);
         }
 
-        void device_ErrorHandler(object sender, string description) {
+        private void device_ErrorHandler(object sender, string description) {
             _finished = true;
             _errorString = description;
-            
         }
 
-        void device_FinishedHandler(object sender) {
+        private void device_FinishedHandler(object sender) {
             _finished = true;
         }
     }
