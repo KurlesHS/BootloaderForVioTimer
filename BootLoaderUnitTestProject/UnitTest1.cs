@@ -44,12 +44,12 @@ namespace BootLoaderUnitTestProject
             for (var packetNum = 0; packetNum < packetCount; ++packetNum)
             {
                 Array.Copy(cryptedBytearray, packetNum * packetLen, internalBuffer, 0, packetLen);
-                var result = testObject.ContinueCrypt(internalBuffer);
+                var result = testObject.ContinueDecrypt(internalBuffer);
                 Array.Copy(result, 0, decryptedBytearray, packetNum * packetLen, packetLen);
             }
 
             for (var idx = 0; idx < testBytearray.Length; ++idx) {
-                Assert.AreEqual(testBytearray[idx], decryptedBytearray[idx], "error on index:" + idx);
+                Assert.AreEqual(testBytearray[idx], decryptedBytearray[idx], "error on index: " + idx);
             }
         }
 
