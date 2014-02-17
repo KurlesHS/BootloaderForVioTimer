@@ -34,8 +34,7 @@ namespace PrepareFirmware
         private const string TimeoutTag = "Timetout";
         private string _cryptFileName;
         private string _firmwareFileName;
-        private byte _cryptPointer;
-        private byte[] _cryptTable;
+        private VioCrypt _vioCrypt;
 
         public MainWindow() {
             InitializeComponent();
@@ -46,6 +45,7 @@ namespace PrepareFirmware
             InitializeFormValues();
             ReadSettings();
             Closed += OnClosed;
+            _vioCrypt = new VioCrypt();
         }
 
 
@@ -204,7 +204,11 @@ namespace PrepareFirmware
         }
 
         private void SaveSettings() {
-            var settings = new XmlWriterSettings {Indent = true, IndentChars = (" "), Encoding = new UTF8Encoding(false)};
+            var settings = new XmlWriterSettings {
+                Indent = true,
+                IndentChars = (" "),
+                Encoding = new UTF8Encoding(false)
+            };
             using (var writer = XmlWriter.Create(SettingsFile, settings)) {
                 writer.WriteStartElement(RootTag);
 
@@ -276,23 +280,16 @@ namespace PrepareFirmware
             try {
                 using (var stream = new BinaryReader(new FileStream(CryptoFilenameTextBox.Text, FileMode.Open))) {
                     const int chunk = 0x100;
-                    _cryptTable = new byte[chunk];
-                    var bytesReaded = stream.Read(_cryptTable, 0, chunk);
+                    var cryptTable = new byte[chunk];
+                    var bytesReaded = stream.Read(cryptTable, 0, chunk);
                     if (bytesReaded != chunk || stream.BaseStream.Length != chunk) {
                         MessageBox.Show(this, "Неверный крипто файл", "Ошибка");
                         return;
                     }
-                    var checkBuffer = new byte[0x100];
-                    for (var x = 0; x < 0x100; ++x) {
-                        checkBuffer[x] = 0x00;
-                    }
-                    for (var x = 0; x < 0x100; ++x) {
-                        ++checkBuffer[_cryptTable[x]];
-                        if (checkBuffer[_cryptTable[x]] != 1)
-                        {
-                            MessageBox.Show(this, "Неверный крипто файл (ecть повторяющиеся байты)", "Ошибка");
-                            return;
-                        }
+                    _vioCrypt.CryptTable = cryptTable;
+                    if (_vioCrypt.CryptTable == null) {
+                        MessageBox.Show(this, "Неверный крипто файл (ecть повторяющиеся байты)", "Ошибка");
+                        return;
                     }
                 }
             } catch (Exception) {
@@ -303,8 +300,6 @@ namespace PrepareFirmware
                 RestoreDirectory = true,
                 Filter = "Файлы для прошивки (*.tmr)|*.tmr"
             };
-
-
             if (dlg.ShowDialog() != true) {
                 return;
             }
@@ -326,7 +321,11 @@ namespace PrepareFirmware
             var filename = dlg.FileName;
             try {
                 var fileStream = new FileStream(filename, FileMode.Create);
-                var xmlSettings = new XmlWriterSettings { Indent = true, IndentChars = (" "), Encoding = new UTF8Encoding(false)};
+                var xmlSettings = new XmlWriterSettings {
+                    Indent = true,
+                    IndentChars = (" "),
+                    Encoding = new UTF8Encoding(false)
+                };
                 using (var writer = XmlWriter.Create(fileStream, xmlSettings)) {
                     // Write XML data.
                     const string rootTag = "vio_timer";
@@ -378,8 +377,8 @@ namespace PrepareFirmware
                     writer.Flush();
                 }
                 using (var writer = new BinaryWriter(fileStream)) {
-                    writer.Write((byte)0x00);
-                    _cryptPointer = 0x00;
+                    writer.Write((byte) 0x00);
+                    _vioCrypt.ResetCryptState();
                     var packetLen = PacketLenghtTextBox.Value;
                     var buffer = new byte[packetLen + 2];
                     var fileLen = firmwareBuffer.Length;
@@ -393,12 +392,10 @@ namespace PrepareFirmware
                     Array.Copy(ConvertIntToBytes(Chksm(firmwareBuffer), 0x02), 0x00, buffer, 0x16, 0x02);
                     SavePacket(writer, buffer);
                     var stream = new MemoryStream(firmwareBuffer);
-                    while (true)
-                    {
+                    while (true) {
                         ClearBuffer(buffer);
                         var readed = stream.Read(buffer, 0, packetLen);
-                        if (readed == 0)
-                        {
+                        if (readed == 0) {
                             MessageBox.Show(this, "Подготовка файла прошла успешно!", "Успех!");
                             break;
                         }
@@ -406,7 +403,6 @@ namespace PrepareFirmware
                     }
                     writer.Flush();
                     writer.Close();
-                    
                 }
             } catch (Exception) {
                 MessageBox.Show(this, "Ошибка открытия файла для записи", "Ошибка!");
@@ -415,7 +411,7 @@ namespace PrepareFirmware
 
         private void SavePacket(BinaryWriter writeStream, byte[] buffer) {
             // TODO: Зашифровать пакетик
-            CryptPacket(buffer);
+            _vioCrypt.ContinueCrypt(buffer, buffer.Length - 2);
             var lenPacket = buffer.Length - 2;
             var chk = Chksm(buffer, lenPacket);
             byte[] chkBytes = ConvertIntToBytes(chk, 2);
@@ -423,21 +419,6 @@ namespace PrepareFirmware
             buffer[lenPacket + 1] = chkBytes[1];
             writeStream.Write(buffer, 0, buffer.Length);
         }
-
-        private void CryptPacket(byte[] buffer)
-        {
-            var tmpByff = new byte[buffer.Length];
-            for (var i = 0; i < buffer.Length - 2; i++)
-            {
-                var tmp = buffer[i];
-                tmp = _cryptTable[_cryptPointer ^ tmp];
-                tmp -= _cryptPointer;
-                _cryptPointer += tmp;
-                tmpByff[i] = tmp;
-            }
-            Array.Copy(tmpByff, buffer, tmpByff.Length - 2);
-        }
-
 
         private static byte[] ConvertIntToBytes(Int64 number, int bytesCount) {
             var retBuf = new byte[bytesCount];
@@ -451,18 +432,17 @@ namespace PrepareFirmware
         private static void ClearBuffer(byte[] buffer) {
             for (var idx = 0; idx < buffer.Length; idx++) buffer[idx] = 0x00;
         }
-        static UInt16 Chksm(byte[] array, int lenght = 0)
-        {
+
+        private static UInt16 Chksm(byte[] array, int lenght = 0) {
             UInt64 sum = 0;
             var i = 0;
             if (lenght == 0) lenght = array.Length;
-            while (i < lenght)
-            {
-                sum += ((UInt64)array[i++] << 8) + array[i++];
+            while (i < lenght) {
+                sum += ((UInt64) array[i++] << 8) + array[i++];
             }
             sum = (sum >> 16) + (sum & 0xffff);
             sum += (sum >> 16);
-            var answer = (UInt16)~sum;
+            var answer = (UInt16) ~sum;
             return answer;
         }
     }
