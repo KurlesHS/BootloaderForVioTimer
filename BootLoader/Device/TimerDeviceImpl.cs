@@ -13,9 +13,14 @@ namespace BootLoader.Device
 
     public delegate void SessionFinishedHandler(object sender);
 
+    public delegate void FlashingProcessHandler(object sender, int position);
+
+    public delegate void PacketCountHandlet(object sended, long packetCount);
+
     public class TimerDeviceImpl
     {   
         private readonly IProtocol _protocol;
+        private int _process;
         private readonly ITimer _timer;
         private Packet _currentPacket;
         private Stream _stream;
@@ -121,6 +126,8 @@ namespace BootLoader.Device
                 FinishedHandler(this);
                 return;
             }
+            _process += 1;
+            ProcessHandler(this, _process);
             var p = IsNextPacketPresent() ? MiddlePacketStamp : LastPacketStamp;
             var packet = new Packet {
                 WaitResponseTimeout = p.WaitResponseTimeout,
@@ -160,34 +167,39 @@ namespace BootLoader.Device
             }
         }
 
-        public bool StartFlashing(Stream stream) {
-            const string errorString = @"Ошибочный файл.";
-            if (!_protocol.Open()) return false;
-            InitPacketStamps();
-            _stream = stream;
-            
+        private static string ReadXmlSettingFromFirmwareFile(Stream stream) {
             var sb = new StringBuilder();
-            while (true) {
-                var _byte = _stream.ReadByte();
+            while (true)
+            {
+                var _byte = stream.ReadByte();
                 if (_byte < 0) {
-                    ErrorHandler(this, errorString);
-                    _protocol.Close();
-                    return false;
+                    return "";
                 }
                 if (_byte == 0) break;
                 sb.Append(Convert.ToChar(_byte));
             }
-            var xmlString = sb.ToString();
+            return  sb.ToString();
+        }
+
+        public bool StartFlashing(Stream stream) {
+            _process = 0;
+            const string errorString = @"Ошибочный файл.";
+            if (!_protocol.Open()) return false;
+            InitPacketStamps();
+            var xmlString = ReadXmlSettingFromFirmwareFile(stream);
 
             if (!GetPacketParametrsByXml(xmlString)) {
                 ErrorHandler(this, errorString);
                 _protocol.Close();
                 return false;
             }
+            var packetCount = stream.Length/PacketLenght;
+            PacketHandler(this, packetCount);
+            ProcessHandler(this, _process);
 
             var buf = new byte[PacketLenght];
 
-            _stream.Read(buf, 0, PacketLenght);
+            stream.Read(buf, 0, PacketLenght);
 
 
             var packet = new Packet {
@@ -197,9 +209,28 @@ namespace BootLoader.Device
                 RetryCount = FirstPacketStamp.RetryCount,
                 WaitResponseTimeout = FirstPacketStamp.WaitResponseTimeout
             };
+            
             _currentPacket = packet;
             SendCurrentPacket();
             return true;
+        }
+
+        private int GetBaudrateFromXml(string xmlString) {
+            const int defaultVal = -1;
+            var xmlDocumet = new XmlDocument();
+            try {
+                xmlDocumet.LoadXml(xmlString);
+                var elementsByTagName = xmlDocumet.GetElementsByTagName("baudrate");
+                if (elementsByTagName.Count != 1) return defaultVal;
+                var element = elementsByTagName.Item(0);
+                return element == null ? defaultVal : Convert.ToInt32(element.InnerText);
+            } catch (Exception) {
+                return defaultVal;
+            }
+        }
+
+        public int GetBaudrateFromStream(Stream stream) {
+            return GetBaudrateFromXml(ReadXmlSettingFromFirmwareFile(stream));
         }
 
         public bool GetPacketParametrsByXml(string xmlString) {
@@ -268,5 +299,7 @@ namespace BootLoader.Device
 
         public event ErrorDataHandler ErrorHandler;
         public event SessionFinishedHandler FinishedHandler;
+        public event FlashingProcessHandler ProcessHandler;
+        public event PacketCountHandlet PacketHandler;
     }
 }

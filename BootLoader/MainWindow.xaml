@@ -51,7 +51,7 @@
                         <GroupBox Grid.Row="1" Grid.Column="1" Header="Код устройства" Height="44.8" VerticalAlignment="Bottom">
                             <ComboBox x:Name="ComboBoxForDeviceCode" IsEditable="True" KeyUp="ComboBoxForDeviceCode_KeyUp"/>
                         </GroupBox>
-                        <GroupBox Grid.Row="1" Grid.Column="2"  Header="Скорость порта">
+                        <GroupBox Grid.Row="1" Grid.Column="2" IsEnabled="False"  Header="Скорость порта">
                             <ComboBox x:Name="ComboBoxForSerialPortBaudrate"/>
                         </GroupBox>
                         <GroupBox Grid.Row="1" Grid.Column="0"  Header="Шифрование">

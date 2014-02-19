@@ -11,7 +11,8 @@ namespace BootLoader.Protocol.Implemantations
         readonly SerialPort _serialPort = new SerialPort();
         private readonly List<Action<object, byte[]>> _dataReceiverListeners = new List<Action<object, byte[]>>();
         private readonly byte[] _readBuffer = new byte[0x400];
-        SerialProtocol(string serialPortName, int baudrate) {
+
+        public SerialProtocol(string serialPortName, int baudrate) {
             _serialPort.BaudRate = baudrate;
             _serialPort.PortName = serialPortName;
             _serialPort.DataReceived += SerialPortOnDataReceived;

@@ -109,7 +109,7 @@ namespace BootLoaderUnitTestProject
         [TestMethod]
         [DeploymentItem(@"xml_loader_prefix.xml")]
         public void TestDeviceImplementation() {
-            string xmlString = File.ReadAllText(@"xml_loader_prefix.xml");
+            var xmlString = File.ReadAllText(@"xml_loader_prefix.xml");
             const int packetLenght = 34;
             const int packetCount = 0x100;
             var buffer = new Byte[packetLenght * packetCount + xmlString.Length + 1];
