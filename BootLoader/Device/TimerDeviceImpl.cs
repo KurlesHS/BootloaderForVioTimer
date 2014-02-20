@@ -94,6 +94,7 @@ namespace BootLoader.Device
             var timer = (ITimer) _timer.Clone();
             _listOfTimers.AddLast(timer);
             timer.Elapsed += TimerOnElapsed;
+            if (Math.Abs(delay) < .01) delay = 1.0;
             timer.Start(delay);
         }
 

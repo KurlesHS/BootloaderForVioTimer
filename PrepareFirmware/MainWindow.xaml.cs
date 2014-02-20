@@ -34,7 +34,7 @@ namespace PrepareFirmware
         private const string TimeoutTag = "Timetout";
         private string _cryptFileName;
         private string _firmwareFileName;
-        private VioCrypt _vioCrypt;
+        private readonly VioCrypt _vioCrypt;
 
         public MainWindow() {
             InitializeComponent();
@@ -56,25 +56,25 @@ namespace PrepareFirmware
             PacketLenghtTextBox.MaxValue = 256;
 
             StartPacketDelayBetweenWrongPacketNumericTextBox.MinValue = 0;
-            StartPacketDelayBetweenWrongPacketNumericTextBox.MaxValue = 0xff;
+            StartPacketDelayBetweenWrongPacketNumericTextBox.MaxValue = 60000;
             MiddlePacketDelayBetweenWrongPacketNumericTextBox.MinValue = 0;
-            MiddlePacketDelayBetweenWrongPacketNumericTextBox.MaxValue = 0xff;
+            MiddlePacketDelayBetweenWrongPacketNumericTextBox.MaxValue = 60000;
             LastPacketDelayBetweenWrongPacketNumericTextBox.MinValue = 0;
-            LastPacketDelayBetweenWrongPacketNumericTextBox.MaxValue = 0xff;
+            LastPacketDelayBetweenWrongPacketNumericTextBox.MaxValue = 60000;
 
             StartPacketTimeoutTextBox.MinValue = 0;
-            StartPacketTimeoutTextBox.MaxValue = 0xff;
+            StartPacketTimeoutTextBox.MaxValue = 60000;
             MiddlePacketTimeoutTextBox.MinValue = 0;
-            MiddlePacketTimeoutTextBox.MaxValue = 0xff;
+            MiddlePacketTimeoutTextBox.MaxValue = 60000;
             LastPacketTimeoutTextBox.MinValue = 0;
-            LastPacketTimeoutTextBox.MaxValue = 0xff;
+            LastPacketTimeoutTextBox.MaxValue = 60000;
 
             StartPacketTryCountNumericTextBox.MinValue = -1;
-            StartPacketTryCountNumericTextBox.MaxValue = 0xff;
+            StartPacketTryCountNumericTextBox.MaxValue = 60000;
             MiddlePacketTryCountNumericTextBox.MinValue = -1;
-            MiddlePacketTryCountNumericTextBox.MaxValue = 0xff;
+            MiddlePacketTryCountNumericTextBox.MaxValue = 60000;
             LastPacketTryCountNumericTextBox.MinValue = -1;
-            LastPacketTryCountNumericTextBox.MaxValue = 0xff;
+            LastPacketTryCountNumericTextBox.MaxValue = 60000;
         }
 
         private void OnClosed(object sender, EventArgs eventArgs) {
@@ -308,8 +308,11 @@ namespace PrepareFirmware
             try {
                 using (var reader = new BinaryReader(new FileStream(FirmwareFilenameTextBox.Text, FileMode.Open))) {
                     var fileLen = reader.BaseStream.Length;
-                    firmwareBuffer = reader.ReadBytes((int) fileLen);
-                    if (firmwareBuffer.Length != fileLen) {
+                    
+                    firmwareBuffer = fileLen%2 == 0 ? new byte[fileLen] : new byte[fileLen + 1];
+                    firmwareBuffer[firmwareBuffer.Length - 1] = 0x00;
+                    var readed = reader.Read(firmwareBuffer, 0, (int)fileLen);
+                    if (readed != fileLen) {
                         MessageBox.Show(this, "Ошибка чтения входного файла!", "Ошибка!");
                         return;
                     }
@@ -411,7 +414,8 @@ namespace PrepareFirmware
 
         private void SavePacket(BinaryWriter writeStream, byte[] buffer) {
             // TODO: Зашифровать пакетик
-            _vioCrypt.ContinueCrypt(buffer, buffer.Length - 2);
+            var crypted = _vioCrypt.ContinueCrypt(buffer, buffer.Length - 2);
+            Array.Copy(crypted, buffer, buffer.Length - 2);
             var lenPacket = buffer.Length - 2;
             var chk = Chksm(buffer, lenPacket);
             byte[] chkBytes = ConvertIntToBytes(chk, 2);

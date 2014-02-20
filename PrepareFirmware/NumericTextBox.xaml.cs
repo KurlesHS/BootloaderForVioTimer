@@ -91,7 +91,7 @@ namespace PrepareFirmware
             Value = 0;
             ValueAsString = "0";
             MinValue = 0;
-            MaxValue = 255;
+            MaxValue = 60000;
             Step = 1;
             _direction = 0;
             _timer = new DispatcherTimer();

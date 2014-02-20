@@ -16,6 +16,11 @@ namespace BootLoader.Protocol.Implemantations
             _serialPort.BaudRate = baudrate;
             _serialPort.PortName = serialPortName;
             _serialPort.DataReceived += SerialPortOnDataReceived;
+            _serialPort.DataBits = 8;
+            _serialPort.Handshake = Handshake.None;
+            _serialPort.Parity = Parity.None;
+            _serialPort.StopBits = StopBits.One;
+
         }
 
         private void SerialPortOnDataReceived(object sender, SerialDataReceivedEventArgs serialDataReceivedEventArgs) {
