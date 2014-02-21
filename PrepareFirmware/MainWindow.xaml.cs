@@ -414,13 +414,13 @@ namespace PrepareFirmware
 
         private void SavePacket(BinaryWriter writeStream, byte[] buffer) {
             // TODO: Зашифровать пакетик
-            var crypted = _vioCrypt.ContinueCrypt(buffer, buffer.Length - 2);
-            Array.Copy(crypted, buffer, buffer.Length - 2);
+            //var crypted = _vioCrypt.ContinueCrypt(buffer, buffer.Length - 2);
+            //Array.Copy(crypted, buffer, buffer.Length - 2);
             var lenPacket = buffer.Length - 2;
             var chk = Chksm(buffer, lenPacket);
             byte[] chkBytes = ConvertIntToBytes(chk, 2);
-            buffer[lenPacket] = chkBytes[0];
-            buffer[lenPacket + 1] = chkBytes[1];
+            buffer[lenPacket] = chkBytes[1];
+            buffer[lenPacket + 1] = chkBytes[0];
             writeStream.Write(buffer, 0, buffer.Length);
         }
 
@@ -437,7 +437,7 @@ namespace PrepareFirmware
             for (var idx = 0; idx < buffer.Length; idx++) buffer[idx] = 0x00;
         }
 
-        private static UInt16 Chksm(byte[] array, int lenght = 0) {
+        public static UInt16 Chksm(byte[] array, int lenght = 0) {
             UInt64 sum = 0;
             var i = 0;
             if (lenght == 0) lenght = array.Length;

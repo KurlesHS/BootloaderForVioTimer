@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.IO;
 using System.IO.Ports;
+using System.Threading;
 using BootLoader.Protocol.Interface;
 
 namespace BootLoader.Protocol.Implemantations
@@ -20,12 +21,13 @@ namespace BootLoader.Protocol.Implemantations
             _serialPort.Handshake = Handshake.None;
             _serialPort.Parity = Parity.None;
             _serialPort.StopBits = StopBits.One;
-
         }
 
         private void SerialPortOnDataReceived(object sender, SerialDataReceivedEventArgs serialDataReceivedEventArgs) {
 
+            
             var readedBytes = _serialPort.Read(_readBuffer, 0, _readBuffer.Length);
+            
             var outBytes = new byte[readedBytes];
             Array.Copy(_readBuffer, 0, outBytes, 0, readedBytes);
             IncomingData(this, outBytes);

@@ -123,6 +123,8 @@ namespace BootLoaderUnitTestProject
             _finished = false;
             device.FinishedHandler += device_FinishedHandler;
             device.ErrorHandler += device_ErrorHandler;
+            device.ProcessHandler += device_ProcessHandler;
+            device.PacketHandler += device_PacketHandler;
             Assert.IsTrue(device.StartFlashing(memoryStream));
             for (var i = 0; i < 100; ++i)
                 timer.Advance(3500);
@@ -133,8 +135,18 @@ namespace BootLoaderUnitTestProject
                 if (iterCount == 100)
                     timer.Advance(1001);
             }
-            Assert.AreEqual(packetCount + 1 + 100, protocol.PacketCount);
             Assert.AreEqual("", _errorString);
+            Assert.AreEqual(packetCount + 1 + 100, protocol.PacketCount);
+            
+        }
+
+        void device_PacketHandler(object sended, long packetCount)
+        {
+        }
+
+        void device_ProcessHandler(object sender, int position)
+        {
+            
         }
 
         private void device_ErrorHandler(object sender, string description) {
@@ -144,6 +156,29 @@ namespace BootLoaderUnitTestProject
 
         private void device_FinishedHandler(object sender) {
             _finished = true;
+        }
+
+        public static UInt16 Chksm(byte[] array, int lenght = 0)
+        {
+            UInt64 sum = 0;
+            var i = 0;
+            if (lenght == 0) lenght = array.Length;
+            while (i < lenght)
+            {
+                sum += ((UInt64)array[i++] << 8) + array[i++];
+            }
+            sum = (sum >> 16) + (sum & 0xffff);
+            sum += (sum >> 16);
+            var answer = (UInt16)sum;
+            return (ushort) ~answer;
+        }
+
+        [TestMethod]
+        public void test_crc() {
+            var b = new byte[34];
+            for (byte i = 0; i < 34; ++i) b[i] = i;
+            var x = Chksm(b, 31);
+            Assert.AreEqual(3839, x);
         }
     }
 }

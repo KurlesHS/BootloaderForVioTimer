@@ -207,7 +207,8 @@ namespace BootLoader
             }
             else
             {
-                ProgressBar.Text = e.Result.ToString();
+                // TODO: restore
+                //ProgressBar.Text = e.Result.ToString();
             }
 
             ButtonSelectFile.IsEnabled = true;
@@ -230,19 +231,21 @@ namespace BootLoader
             var portSetting = e.Argument as SerialPortSetting;
             if (portSetting == null)
                 return;
-            SetTextForProgressBar("Ожидаем ответа от таймера");
+            SetTextForProgressBar("Открываем порт");
 
             var device = new TimerDeviceImpl(new SerialProtocol(portSetting.PortName, portSetting.Baudrate));
             device.ProcessHandler += device_ProcessHandler;
             device.ErrorHandler += device_ErrorHandler;
             device.FinishedHandler += device_FinishedHandler;
             device.PacketHandler += device_PacketHandler;
+            device.DebugHandler += device_DebugHandler;
             try {
                 using (var stream = new FileStream(_hexFilename, FileMode.Open)) {
                     if (!device.StartFlashing(stream)) {
                         e.Result = "Ошибка открытия последовательного порта";
                         return;
                     }
+                    SetTextForProgressBar("Ожидаем ответа от таймера");
                     _inProcess = true;
                     _resultString = "";
                     while (_inProcess) {
@@ -255,10 +258,17 @@ namespace BootLoader
             e.Result = _resultString;
         }
 
+        void device_DebugHandler(object sener, string mst)
+        {
+            SetTextForProgressBar(mst);
+        }
+
         void device_PacketHandler(object sended, long packetCount) {
             SetMaxValueForProgressBar((int) packetCount);
             if (packetCount == 1) SetTextForProgressBar("Прошивка в процессе");
         }
+
+        
 
         void device_FinishedHandler(object sender) {
             _resultString = "Устройство прошито";

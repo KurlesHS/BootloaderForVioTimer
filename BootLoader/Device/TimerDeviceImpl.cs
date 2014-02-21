@@ -2,10 +2,12 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
+using System.Threading;
 using System.Xml;
 using BootLoader.Impl;
 using BootLoader.Interfaces;
 using BootLoader.Protocol.Interface;
+using Timer = BootLoader.Impl.Timer;
 
 namespace BootLoader.Device
 {
@@ -16,6 +18,8 @@ namespace BootLoader.Device
     public delegate void FlashingProcessHandler(object sender, int position);
 
     public delegate void PacketCountHandlet(object sended, long packetCount);
+
+    public delegate void DebugStringHandler(object sener, string mst);
 
     public class TimerDeviceImpl
     {   
@@ -71,22 +75,30 @@ namespace BootLoader.Device
             };
         }
 
+        private string _currentLine = "";
         private void ProtocolOnIncomingData(object sender, byte[] payload) {
             var line = Encoding.ASCII.GetString(payload);
+            _currentLine += line;
+            SendDebugMsg("Приняли данные: " + _currentLine);
             _timer.Stop();
             if (_currentPacket == null) {
                 ErrorHandler(this, InternalErrorString);
                 _protocol.Close();
                 return;
             }
+
             var maxResponseLenght = Math.Max(_currentPacket.OkResponse.Length, _currentPacket.BadResponse.Length);
-            if (line == _currentPacket.OkResponse) {
+            if (_currentLine == _currentPacket.OkResponse) {
+                _currentLine = "";
                 SendNextPacket();
-            } else if (line == _currentPacket.BadResponse) {
+            } else if (_currentLine == _currentPacket.BadResponse) {
                 ResendCurrentPacketWithDelay(_currentPacket.DelayBetweenPacket);
-            }
-            if (payload.Length >= maxResponseLenght) {
+                _currentLine = "";
+            } else if (_currentLine.Length >= maxResponseLenght) {
                 ResendCurrentPacketWithDelay(_currentPacket.DelayBetweenPacket);
+                _currentLine = "";
+            } else {
+                _timer.Start(_currentPacket.WaitResponseTimeout);
             }
         }
 
@@ -142,6 +154,7 @@ namespace BootLoader.Device
         }
 
         private void SendCurrentPacket() {
+            SendDebugMsg("Посылаем пакет с номером " + Convert.ToString(_process));
             _protocol.SendData(_currentPacket.DataBytes);
             _timer.Start(_currentPacket.WaitResponseTimeout);
         }
@@ -183,6 +196,8 @@ namespace BootLoader.Device
         }
 
         public bool StartFlashing(Stream stream) {
+            _currentLine = "";
+            _stream = stream;
             _process = 0;
             const string errorString = @"Ошибочный файл.";
             if (!_protocol.Open()) return false;
@@ -298,9 +313,14 @@ namespace BootLoader.Device
             for (var idx = 0; idx < array.Length; ++idx) array[idx] = value;
         }
 
+        private void SendDebugMsg(string msg) {
+            if (DebugHandler != null) DebugHandler(this, msg);
+        }
+
         public event ErrorDataHandler ErrorHandler;
         public event SessionFinishedHandler FinishedHandler;
         public event FlashingProcessHandler ProcessHandler;
         public event PacketCountHandlet PacketHandler;
+        public event DebugStringHandler DebugHandler;
     }
 }
