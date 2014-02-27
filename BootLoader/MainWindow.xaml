@@ -42,20 +42,20 @@
                             <ColumnDefinition Width="*"/>
                             <ColumnDefinition Width="*"/>
                         </Grid.ColumnDefinitions>
-                        <GroupBox Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Header="Файл для прошивки">
+                        <GroupBox Grid.Row="0" Grid.Column="0" Grid.ColumnSpan="2" Grid.RowSpan="2" Header="Файл для прошивки">
                             <TextBlock TextTrimming="CharacterEllipsis" x:Name="LabelForFileName" Text="Файл не выбран" ToolTip="{Binding RelativeSource={RelativeSource Self}, Path=Text}"/>
                         </GroupBox>
 
                         <GroupBox Grid.Row="0" Grid.Column="2" Header="Последовательный порт">
-                            <ComboBox x:Name="ComboboxForPortsNames" SelectionChanged="comboboxForPortsNames_SelectionChanged"/>
+                            <ComboBox x:Name="ComboboxForPortsNames" IsEditable="True" SelectionChanged="comboboxForPortsNames_SelectionChanged"/>
                         </GroupBox>
-                        <GroupBox Grid.Row="1" Grid.Column="1" Header="Код устройства" Height="44.8" VerticalAlignment="Bottom">
+                        <GroupBox Grid.Row="1" Grid.Column="1" Header="Код устройства" Height="44.8" VerticalAlignment="Bottom" Visibility="Hidden">
                             <ComboBox x:Name="ComboBoxForDeviceCode" IsEditable="True" KeyUp="ComboBoxForDeviceCode_KeyUp"/>
                         </GroupBox>
                         <GroupBox Grid.Row="1" Grid.Column="2" IsEnabled="False"  Header="Скорость порта">
                             <ComboBox x:Name="ComboBoxForSerialPortBaudrate"/>
                         </GroupBox>
-                        <GroupBox Grid.Row="1" Grid.Column="0"  Header="Шифрование">
+                        <GroupBox Grid.Row="1" Grid.Column="0"  Header="Шифрование" Visibility="Collapsed">
                             <Button x:Name="IsCryptEnabledButton" Content="Включено" Click="Button_Click"/>
                         </GroupBox>
 

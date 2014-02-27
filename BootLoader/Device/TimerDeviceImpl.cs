@@ -2,7 +2,6 @@
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using System.Threading;
 using System.Xml;
 using BootLoader.Impl;
 using BootLoader.Interfaces;
@@ -17,7 +16,7 @@ namespace BootLoader.Device
 
     public delegate void FlashingProcessHandler(object sender, int position);
 
-    public delegate void PacketCountHandlet(object sended, long packetCount);
+    public delegate void PacketCountHandlet(object sended, long packetCount, long packetLenght);
 
     public delegate void DebugStringHandler(object sener, string mst);
 
@@ -209,8 +208,8 @@ namespace BootLoader.Device
                 _protocol.Close();
                 return false;
             }
-            var packetCount = stream.Length/PacketLenght;
-            PacketHandler(this, packetCount);
+            var packetCount = (stream.Length - xmlString.Length -1 ) / PacketLenght;
+            PacketHandler(this, packetCount, PacketLenght);
             ProcessHandler(this, _process);
 
             var buf = new byte[PacketLenght];

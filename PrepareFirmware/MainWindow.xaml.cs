@@ -414,8 +414,8 @@ namespace PrepareFirmware
 
         private void SavePacket(BinaryWriter writeStream, byte[] buffer) {
             // TODO: Зашифровать пакетик
-            //var crypted = _vioCrypt.ContinueCrypt(buffer, buffer.Length - 2);
-            //Array.Copy(crypted, buffer, buffer.Length - 2);
+            var crypted = _vioCrypt.ContinueCrypt(buffer, buffer.Length - 2);
+            Array.Copy(crypted, buffer, buffer.Length - 2);
             var lenPacket = buffer.Length - 2;
             var chk = Chksm(buffer, lenPacket);
             byte[] chkBytes = ConvertIntToBytes(chk, 2);

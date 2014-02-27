@@ -44,7 +44,7 @@ namespace BootLoader
                 var match = regex.Match(comportString);
                 if (match.Success)
                 {
-                    ret[index] = match.Groups[0].ToString();    
+                    ret[index] = match.Groups[1].ToString();    
                 }
                 else
                 {
@@ -116,8 +116,7 @@ namespace BootLoader
                         if (node.Name == "SerialPort")
                         {
                             var serialPortName = node.InnerText;
-                            if (ComboboxForPortsNames.Items.Contains(serialPortName))
-                                _serialPort = node.InnerText;
+                            _serialPort = serialPortName;
                         }
                             
                         if (node.Name == "CryptIsEnabled")
@@ -150,7 +149,7 @@ namespace BootLoader
                 }
                 UpdateIsCryptingEnabledButtonText();
                 ButtonStartFlashing.IsEnabled = true;
-                ComboboxForPortsNames.SelectedItem = _serialPort;
+                ComboboxForPortsNames.Text = _serialPort;
             }
             catch (Exception)
             {
@@ -208,7 +207,7 @@ namespace BootLoader
             else
             {
                 // TODO: restore
-                //ProgressBar.Text = e.Result.ToString();
+                ProgressBar.Text = e.Result.ToString();
             }
 
             ButtonSelectFile.IsEnabled = true;
@@ -231,14 +230,12 @@ namespace BootLoader
             var portSetting = e.Argument as SerialPortSetting;
             if (portSetting == null)
                 return;
-            SetTextForProgressBar("Открываем порт");
-
+            SetTextForProgressBar("Открываем порт " + portSetting.PortName);
             var device = new TimerDeviceImpl(new SerialProtocol(portSetting.PortName, portSetting.Baudrate));
             device.ProcessHandler += device_ProcessHandler;
             device.ErrorHandler += device_ErrorHandler;
             device.FinishedHandler += device_FinishedHandler;
             device.PacketHandler += device_PacketHandler;
-            device.DebugHandler += device_DebugHandler;
             try {
                 using (var stream = new FileStream(_hexFilename, FileMode.Open)) {
                     if (!device.StartFlashing(stream)) {
@@ -258,14 +255,10 @@ namespace BootLoader
             e.Result = _resultString;
         }
 
-        void device_DebugHandler(object sener, string mst)
-        {
-            SetTextForProgressBar(mst);
-        }
-
-        void device_PacketHandler(object sended, long packetCount) {
-            SetMaxValueForProgressBar((int) packetCount);
-            if (packetCount == 1) SetTextForProgressBar("Прошивка в процессе");
+        private long _packetLength;
+        void device_PacketHandler(object sended, long packetCount, long packetLenght) {
+            SetMaxValueForProgressBar((int) packetCount - 1);
+            _packetLength = packetLenght;
         }
 
         
@@ -283,6 +276,7 @@ namespace BootLoader
         void device_ProcessHandler(object sender, int position)
         {
             SetValueForProgressBar(position);
+            if (position > 1) SetTextForProgressBar(String.Format("Прошито {0} байт", position * (_packetLength - 2)));
         }
 
         private void UpdateSettings()
@@ -308,7 +302,7 @@ namespace BootLoader
                     xw.WriteStartElement("Flasher");
 
                     xw.WriteElementString("FileName", _hexFilename);
-                    xw.WriteElementString("SerialPort", _serialPort);
+                    xw.WriteElementString("SerialPort", ComboboxForPortsNames.Text);
                     xw.WriteElementString("CryptIsEnabled", _isCryptingEnabled ? "true" : "false");
                     xw.WriteElementString("BaudRate", ComboBoxForSerialPortBaudrate.Text);
                     var itemCollection = ComboBoxForDeviceCode.Items;
@@ -381,7 +375,7 @@ namespace BootLoader
 
         private void comboboxForPortsNames_SelectionChanged(object sender, SelectionChangedEventArgs e)
         {
-            _serialPort = ComboboxForPortsNames.SelectedItem.ToString();
+            _serialPort = ComboboxForPortsNames.Text;
             UpdateSettings();
         }
 
@@ -457,7 +451,7 @@ namespace BootLoader
             ComboboxForPortsNames.IsEnabled = false;
             ButtonSelectAndFlashing.IsEnabled = false;
             ProgressBar.Text = "Идет прошивка, подождите...";
-            _bgWorker.RunWorkerAsync(new SerialPortSetting {Baudrate = Convert.ToInt32(ComboBoxForSerialPortBaudrate.SelectedItem.ToString()), PortName = _serialPort});
+            _bgWorker.RunWorkerAsync(new SerialPortSetting {Baudrate = Convert.ToInt32(ComboBoxForSerialPortBaudrate.SelectedItem.ToString()), PortName = ComboboxForPortsNames.Text});
         }
 
         private void ButtonSelectFile_Click(object sender, RoutedEventArgs e)
