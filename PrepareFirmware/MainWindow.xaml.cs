@@ -23,6 +23,7 @@ namespace PrepareFirmware
         private const string PacketLenghtTag = "PacketLenght";
         private const string FirmwareFileTag = "FirmwareFile2";
         private const string CryptoFileTag = "CryptoFile2";
+        private const string DescriptionFileTag = "DescriptionFile2";
         private const string StartPacketTag = "StartPacket";
         private const string MiddlePacketTag = "MiddlePacket";
         private const string LastPacketTag = "LastPacket";
@@ -34,6 +35,7 @@ namespace PrepareFirmware
         private const string TimeoutTag = "Timetout";
         private string _cryptFileName;
         private string _firmwareFileName;
+        private string _descriptionFileName;
         private readonly VioCrypt _vioCrypt;
 
         public MainWindow() {
@@ -87,6 +89,7 @@ namespace PrepareFirmware
             var packetLenght = "32";
             var firmwareFile = "";
             var cryptoFile = "";
+            var descriptionFile = "";
             var firstPacketDeviceCode = "dev_code";
             var firstPacketRetryCount = "-1";
             var firstPacketOkResponce = "GO";
@@ -117,6 +120,9 @@ namespace PrepareFirmware
                     element = document.Element(PacketLenghtTag);
                     if (element != null)
                         packetLenght = element.Value;
+                    element = document.Element(DescriptionFileTag);
+                    if (element != null)
+                        descriptionFile = element.Value;
                     element = document.Element(FirmwareFileTag);
                     if (element != null)
                         firmwareFile = element.Value;
@@ -150,9 +156,10 @@ namespace PrepareFirmware
             SetIntegerValue(PacketLenghtTextBox, packetLenght, 32);
             _firmwareFileName = firmwareFile.Trim() == "" ? FileNotSelectedText : firmwareFile.Trim();
             _cryptFileName = cryptoFile.Trim() == "" ? FileNotSelectedText : cryptoFile.Trim();
-
+            _descriptionFileName = descriptionFile.Trim() == "" ? FileNotSelectedText : descriptionFile.Trim();
             FirmwareFilenameTextBox.Text = _firmwareFileName;
             CryptoFilenameTextBox.Text = _cryptFileName;
+            DescriptionTextBox.Text = _descriptionFileName;
 
             DeviceCodeTextBox.Text = firstPacketDeviceCode;
 
@@ -217,6 +224,7 @@ namespace PrepareFirmware
                 writer.WriteElementString(PacketLenghtTag, Convert.ToString(PacketLenghtTextBox.Value));
                 writer.WriteElementString(FirmwareFileTag, FirmwareFilenameTextBox.Text);
                 writer.WriteElementString(CryptoFileTag, CryptoFilenameTextBox.Text);
+                writer.WriteElementString(DescriptionFileTag, DescriptionTextBox.Text);                
 
                 writer.WriteStartElement(StartPacketTag);
                 writer.WriteElementString(DeviceCodeTag, DeviceCodeTextBox.Text);
@@ -258,11 +266,20 @@ namespace PrepareFirmware
         }
 
         private void ButtonSelectCryptoFile_Click(object sender, RoutedEventArgs e) {
-            var filename = SelectFile(".crt", "Crypto files (*.bin)|*.bin|All files|*.*");
+            var filename = SelectFile(".bin", "Crypto files (*.bin)|*.bin|All files|*.*");
             if (filename == null) return;
             CryptoFilenameTextBox.Text = filename;
             _cryptFileName = filename;
         }
+        
+        private void ButtonSelectDescriptionFile_Click(object sender, RoutedEventArgs e) {
+            var filename = SelectFile(".txt", "Txt files (*.txt)|*.txt|All files|*.*");
+            if (filename == null) return;
+            DescriptionTextBox.Text = filename;
+            _descriptionFileName = filename;
+        }
+        
+        
 
         private static string SelectFile(string defaultExt, string filter) {
             // fucking piece of shit change current directry!
@@ -342,7 +359,10 @@ namespace PrepareFirmware
                     const string retryCountTag = "retry_count";
                     const string timeoutTag = "timeout";
                     const string delayBetweenResendPacket = "delay_between_resend_packet";
-
+                    const string descriptionTag = "description";
+                    
+                    var description = File.ReadAllText(_descriptionFileName);
+                    
 
                     writer.WriteStartElement(rootTag);
 
@@ -375,6 +395,10 @@ namespace PrepareFirmware
                     writer.WriteElementString(delayBetweenResendPacket,
                         Convert.ToString(LastPacketDelayBetweenWrongPacketNumericTextBox.Value));
                     writer.WriteEndElement();
+
+                    if (description != "") {
+                        writer.WriteElementString(descriptionTag, description);
+                    }
 
                     writer.WriteEndElement();
                     writer.Flush();
